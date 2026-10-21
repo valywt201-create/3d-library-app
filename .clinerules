@@ -1,0 +1,10 @@
+# Taste & Design Skill Rules
+
+1. Aesthetics & UI: Always use high-quality modern UI principles. Use balanced dark/light contrasts, sleek glassmorphism, and soft shadows.
+2. Color Palette: Stick to sophisticated palettes (e.g., deep dark backgrounds with vibrant accents like neon purple, cyan, or gold).
+3. Typography: Use high-legibility modern fonts with clear hierarchy and spacing.
+4. Interactivity: Add smooth hover transitions, micro-interactions, and 3D ambient visual effects.
+5. Layout: Clean grid-based or flexbox layouts with generous padding and no clutter.
+# Context-Aware Prompting Rules
+- Always read PROJECT_CONTEXT.md and MEMORY_LOG.md before starting any task.
+- Check existing UI components in src/ before creating new ones to avoid code duplication.
