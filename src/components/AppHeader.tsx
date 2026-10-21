@@ -1,17 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Library, Settings, UserRound } from 'lucide-react'
 import { useGoogleAuth } from '../lib/googleAuth'
 import { sfx } from '../shared'
-import AuthModal from './AuthModal'
 
 /* ============ شارة الحساب: صورة المستخدم أو حالة الزائر ============ */
 function ProfileBadge({ accent, onClick }: { accent: string; onClick: () => void }) {
   const { user } = useGoogleAuth()
-  const [broken, setBroken] = useState(false)
+  const [brokenPicture, setBrokenPicture] = useState<string | null>(null)
   const avatar = user?.picture ?? ''
   const name = user?.name ?? ''
-
-  useEffect(() => { setBroken(false) }, [avatar]) // نعيد المحاولة عند تغيّر الصورة
 
   return (
     <button
@@ -21,12 +18,12 @@ function ProfileBadge({ accent, onClick }: { accent: string; onClick: () => void
       className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 py-1 pe-3 ps-1 transition hover:bg-white/10 active:scale-95"
     >
       {user ? (
-        avatar && !broken ? (
+        avatar && avatar !== brokenPicture ? (
           <img
             src={avatar}
             alt=""
             referrerPolicy="no-referrer"
-            onError={() => setBroken(true)}
+            onError={() => setBrokenPicture(avatar)}
             className="h-7 w-7 rounded-full object-cover"
             style={{ boxShadow: `0 0 0 2px ${accent}` }}
           />
@@ -47,14 +44,12 @@ function ProfileBadge({ accent, onClick }: { accent: string; onClick: () => void
 interface Props {
   accent: string
   onOpenSettings: () => void
+  onOpenAuth: () => void
 }
 
-export default function AppHeader({ accent, onOpenSettings }: Props) {
-  const [authOpen, setAuthOpen] = useState(false)
-
+export default function AppHeader({ accent, onOpenSettings, onOpenAuth }: Props) {
   return (
-    <>
-      <header className="glass sticky top-0 z-20 rounded-none border-x-0 border-t-0">
+    <header className="glass sticky top-0 z-20 rounded-none border-x-0 border-t-0">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-3 sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <span
@@ -78,12 +73,9 @@ export default function AppHeader({ accent, onOpenSettings }: Props) {
             >
               <Settings size={17} className="transition-transform duration-300 group-hover:rotate-90" />
             </button>
-            <ProfileBadge accent={accent} onClick={() => setAuthOpen(true)} />
+            <ProfileBadge accent={accent} onClick={onOpenAuth} />
           </div>
         </div>
-      </header>
-
-      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
-    </>
+    </header>
   )
 }

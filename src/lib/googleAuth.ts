@@ -3,7 +3,8 @@ import { useSyncExternalStore } from 'react'
 /* ============ الإعدادات ============ */
 // معرّف عميل OAuth من Google Cloud Console، ويُقرأ من ملف .env
 export const GOOGLE_CLIENT_ID: string = ((import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined) ?? '').trim()
-export const isGoogleConfigured: boolean = GOOGLE_CLIENT_ID !== ''
+// لا نعدّ الإعداد صالحاً إلا إذا كان معرّف OAuth من نوع Web وبالصيغة المعروفة لدى Google.
+export const isGoogleConfigured: boolean = /^\d+-[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(GOOGLE_CLIENT_ID)
 
 const KEY = 'atelier-google-auth-v1'
 const SESSION_DAYS = 30

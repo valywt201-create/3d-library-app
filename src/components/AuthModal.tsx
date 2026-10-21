@@ -13,10 +13,10 @@ export default function AuthModal({ open, onClose }: Props) {
   const { user } = useGoogleAuth()
   const btnRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef(onClose) // نحتفظ بأحدث onClose دون إعادة رسم زر Google كل مرة
-  closeRef.current = onClose
+  useEffect(() => { closeRef.current = onClose }, [onClose])
   const [error, setError] = useState('')
   const [ready, setReady] = useState(false)
-  const [broken, setBroken] = useState(false)
+  const [brokenPicture, setBrokenPicture] = useState<string | null>(null)
 
   const close = (): void => { sfx.close(); onClose() }
 
@@ -36,8 +36,6 @@ export default function AuthModal({ open, onClose }: Props) {
       .catch((e: unknown) => { if (!cancelled) setError(e instanceof Error ? e.message : 'حدث خطأ غير متوقع') })
     return () => { cancelled = true }
   }, [open, user])
-
-  useEffect(() => { setBroken(false) }, [user?.picture])
 
   // الإغلاق بمفتاح Esc
   useEffect(() => {
@@ -92,12 +90,12 @@ export default function AuthModal({ open, onClose }: Props) {
                 /* ===== مستخدم مسجّل ===== */
                 <div className="space-y-4">
                   <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
-                    {user.picture && !broken ? (
+                    {user.picture && user.picture !== brokenPicture ? (
                       <img
                         src={user.picture}
                         alt=""
                         referrerPolicy="no-referrer"
-                        onError={() => setBroken(true)}
+                        onError={() => setBrokenPicture(user.picture)}
                         className="h-12 w-12 shrink-0 rounded-full object-cover"
                         style={{ boxShadow: '0 0 0 2px var(--accent)' }}
                       />
@@ -122,7 +120,7 @@ export default function AuthModal({ open, onClose }: Props) {
               ) : !isGoogleConfigured ? (
                 /* ===== المعرّف غير مضبوط: خطوات الإعداد ===== */
                 <div className="space-y-2 text-sm">
-                  <p>تسجيل الدخول بحساب Google غير مفعّل بعد، والتطبيق يعمل كزائر.</p>
+                  <p>تسجيل الدخول بحساب Google غير مفعّل بعد أو أن معرّف OAuth غير صالح، والتطبيق يعمل كزائر.</p>
                   <ol className="list-decimal space-y-1 pr-5 text-xs opacity-80">
                     <li>أنشئ OAuth client ID من نوع Web في Google Cloud Console.</li>
                     <li>أضف <span dir="ltr">http://localhost:5173</span> إلى Authorized JavaScript origins.</li>
@@ -138,7 +136,19 @@ export default function AuthModal({ open, onClose }: Props) {
                     <div ref={btnRef} />
                     {!ready && !error && <span className="absolute text-xs opacity-60">جارٍ تحميل زر Google…</span>}
                   </div>
-                  {error && <p role="alert" className="text-center text-sm text-red-300">{error}</p>}
+                  {error && (
+                    <p role="alert" className="rounded-xl border border-red-300/20 bg-red-400/10 p-3 text-sm text-red-200">{error}</p>
+                  )}
+                  <details className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/80">
+                    <summary className="cursor-pointer font-semibold">إذا ظهر الخطأ invalid_client، اعرض خطوات الحل</summary>
+                    <ol className="mt-2 list-decimal space-y-1 pr-5">
+                      <li>تحقق من أن المعرّف مأخوذ من مشروع Google Cloud الصحيح ومن عميل OAuth من نوع تطبيق ويب، وليس من مفتاح API أو سرّ العميل.</li>
+                      <li>في بيانات اعتماد OAuth، أضف <span dir="ltr">http://localhost:5173</span> ضمن Authorized JavaScript origins دون مسار إضافي.</li>
+                      <li>تأكد من نسخ Client ID كاملاً كما هو إلى <span dir="ltr">VITE_GOOGLE_CLIENT_ID</span> داخل ملف <span dir="ltr">.env</span> الموجود بجذر المشروع.</li>
+                      <li>أوقف خادم Vite ثم شغّله مجدداً بعد تعديل <span dir="ltr">.env</span>، وبعدها حدّث الصفحة تحديثاً كاملاً.</li>
+                      <li>إذا استمر الخطأ، تحقق أن عميل OAuth لم يُحذف أو يُعطّل وأن عنوان الصفحة الحالي هو <span dir="ltr">http://localhost:5173</span>.</li>
+                    </ol>
+                  </details>
                   <p className="flex items-start gap-2 text-[11px] opacity-60">
                     <ShieldCheck size={14} className="mt-0.5 shrink-0" />
                     يُحفظ اسمك وبريدك وصورتك في هذا المتصفح فقط، ولا يُحفظ أي رمز دخول.

@@ -188,20 +188,17 @@ export default function SettingsModal({ open, onClose }: Props) {
   const onHi = s.accentMode === 'custom' ? readableOn(s.customAccent) : '#111'
   const sel = (active: boolean): CSSProperties => (active ? { background: HI, color: onHi } : {})
 
-  // العودة لأول تبويب عند كل فتح
-  useEffect(() => { if (open) setTab('look') }, [open])
-
   // الإغلاق بمفتاح Esc
   useEffect(() => {
     if (!open) return undefined
     const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') { sfx.close(); onClose() }
+      if (e.key === 'Escape') { setTab('look'); sfx.close(); onClose() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onClose])
 
-  const close = (): void => { sfx.close(); onClose() }
+  const close = (): void => { setTab('look'); sfx.close(); onClose() }
   const chip = 'rounded-lg bg-white/10 px-3 py-1.5 text-sm transition hover:bg-white/20 active:scale-95'
   const visibleCount = TOOL_CATALOG.filter(t => !s.hiddenTools.includes(t.id)).length
 
@@ -215,23 +212,24 @@ export default function SettingsModal({ open, onClose }: Props) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: 0.22, ease: 'easeOut' }}
         >
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={close} />
+          <div aria-hidden="true" className="absolute inset-0 bg-slate-950/70 backdrop-blur-md" onClick={close} />
 
           <motion.div
             role="dialog"
             aria-modal="true"
-            aria-label="الإعدادات"
+            aria-labelledby="settings-modal-title"
             dir="rtl"
             initial={{ opacity: 0, y: 16, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.2 }}
-            className="glass-strong relative flex max-h-[88dvh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl"
+            transition={{ duration: 0.24, ease: 'easeOut' }}
+            className="glass-strong relative flex max-h-[88dvh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/10 shadow-2xl shadow-black/40"
           >
             {/* الرأس */}
             <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-              <h2 className="text-lg font-semibold" style={{ color: HI }}>الإعدادات</h2>
+              <h2 id="settings-modal-title" className="text-lg font-semibold" style={{ color: HI }}>الإعدادات</h2>
               <div className="flex items-center gap-2">
                 <button
                   className={`${chip} flex items-center gap-1 text-xs`}
@@ -239,7 +237,9 @@ export default function SettingsModal({ open, onClose }: Props) {
                 >
                   <RotateCcw size={13} />إعادة الضبط
                 </button>
-                <button aria-label="إغلاق" onClick={close}><X size={18} /></button>
+                <button aria-label="إغلاق الإعدادات" title="إغلاق" onClick={close} className="flex h-9 w-9 items-center justify-center rounded-lg transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" style={{ outlineColor: HI }}>
+                  <X size={18} />
+                </button>
               </div>
             </div>
 

@@ -9,6 +9,7 @@ import Uploader from './Uploader'
 import Sketchpad from './Sketchpad'
 import Library from './Library'
 import ToolsPanel from './ToolsPanel'
+import NotesEditor from './NotesEditor'
 
 /* ============ نموذج إضافة (قسم / فرع) ============ */
 interface AddFormProps {
@@ -165,6 +166,8 @@ function TreeNodeItem({ node, parentPath, depth, onNotice }: TreeNodeItemProps) 
 
               <Library nodeId={node.id} color={color} />
 
+              {active && <NotesEditor key={node.id} nodeId={node.id} title={node.title} />}
+
               <div className="space-y-2 border-t border-white/10 pt-3">
                 <AddForm
                   placeholder={`فرع جديد داخل «${node.title}»`}
@@ -186,20 +189,24 @@ function TreeNodeItem({ node, parentPath, depth, onNotice }: TreeNodeItemProps) 
 
               {node.children.length > 0 && (
                 // الدرج: كل مستوى يُزاح درجة إضافية، وخط رابط بلون الأب يصل الفروع به
-                <div
+                <motion.div
+                  initial={{ opacity: 0, paddingInlineStart: 0 }}
+                  animate={{ opacity: 1, paddingInlineStart: 24 }}
+                  exit={{ opacity: 0, paddingInlineStart: 0 }}
+                  transition={{ duration: 0.25, ease: 'easeInOut' }}
                   className="space-y-2"
-                  style={{ borderInlineStart: `2px solid ${color}66`, paddingInlineStart: 14, marginInlineStart: 8 }}
+                  style={{ borderInlineStart: `2px solid ${color}66`, marginInlineStart: 8 }}
                 >
                   {node.children.map(ch => (
                     <div key={ch.id} className="relative">
                       <span
                         aria-hidden
-                        style={{ position: 'absolute', insetInlineStart: -14, top: 20, width: 14, height: 2, background: color + '66' }}
+                        style={{ position: 'absolute', insetInlineStart: -24, top: 20, width: 24, height: 2, background: color + '66' }}
                       />
                       <TreeNodeItem node={ch} parentPath={myPath} depth={depth + 1} onNotice={onNotice} />
                     </div>
                   ))}
-                </div>
+                </motion.div>
               )}
             </div>
           </motion.div>
