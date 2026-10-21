@@ -1,22 +1,17 @@
 import { useEffect, useState } from 'react'
 import { Library, Settings, UserRound } from 'lucide-react'
-import { useAuth } from '../lib/supabase'
+import { useGoogleAuth } from '../lib/googleAuth'
 import { sfx } from '../shared'
 import AuthModal from './AuthModal'
 
-const str = (v: unknown): string => (typeof v === 'string' ? v : '')
-
 /* ============ شارة الحساب: صورة المستخدم أو حالة الزائر ============ */
 function ProfileBadge({ accent, onClick }: { accent: string; onClick: () => void }) {
-  const { user, loading } = useAuth()
+  const { user } = useGoogleAuth()
   const [broken, setBroken] = useState(false)
-  const meta = user?.user_metadata as Record<string, unknown> | undefined
-  const avatar = str(meta?.avatar_url) || str(meta?.picture)
-  const name = str(meta?.full_name) || user?.email?.split('@')[0] || ''
+  const avatar = user?.picture ?? ''
+  const name = user?.name ?? ''
 
   useEffect(() => { setBroken(false) }, [avatar]) // نعيد المحاولة عند تغيّر الصورة
-
-  if (loading) return <div className="h-9 w-9 animate-pulse rounded-full bg-white/10" aria-label="جارٍ التحقق من الحساب" />
 
   return (
     <button
@@ -27,7 +22,14 @@ function ProfileBadge({ accent, onClick }: { accent: string; onClick: () => void
     >
       {user ? (
         avatar && !broken ? (
-          <img src={avatar} alt="" onError={() => setBroken(true)} className="h-7 w-7 rounded-full object-cover" style={{ boxShadow: `0 0 0 2px ${accent}` }} />
+          <img
+            src={avatar}
+            alt=""
+            referrerPolicy="no-referrer"
+            onError={() => setBroken(true)}
+            className="h-7 w-7 rounded-full object-cover"
+            style={{ boxShadow: `0 0 0 2px ${accent}` }}
+          />
         ) : (
           <span className="flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold text-black" style={{ background: accent }}>
             {(name[0] ?? '?').toUpperCase()}

@@ -1,12 +1,8 @@
-import { useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { LogOut, X } from 'lucide-react'
-import { isSupabaseConfigured, signInWithEmail, signOutUser, signUpWithEmail, useAuth } from '../lib/supabase'
+import { LogOut, ShieldCheck, X } from 'lucide-react'
+import { isGoogleConfigured, renderGoogleButton, signOutGoogle, useGoogleAuth } from '../lib/googleAuth'
 import { sfx } from '../shared'
-import { ACCENT, btn, field } from './toolkit'
-
-type Mode = 'signin' | 'signup'
 
 interface Props {
   open: boolean
@@ -14,119 +10,58 @@ interface Props {
 }
 
 export default function AuthModal({ open, onClose }: Props) {
-  const { user, loading } = useAuth()
-  const [mode, setMode] = useState<Mode>('signin')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirm, setConfirm] = useState('')
-  const [busy, setBusy] = useState(false)
+  const { user } = useGoogleAuth()
+  const btnRef = useRef<HTMLDivElement>(null)
+  const closeRef = useRef(onClose) // نحتفظ بأحدث onClose دون إعادة رسم زر Google كل مرة
+  closeRef.current = onClose
   const [error, setError] = useState('')
-  const [info, setInfo] = useState('')
+  const [ready, setReady] = useState(false)
+  const [broken, setBroken] = useState(false)
 
-  // تصفير النموذج في كل مرة تُفتح فيها النافذة
+  const close = (): void => { sfx.close(); onClose() }
+
+  // رسم زر Google عند فتح النافذة (للزائر فقط)
   useEffect(() => {
-    if (!open) return
-    setMode('signin')
-    setEmail('')
-    setPassword('')
-    setConfirm('')
+    if (!open || user || !isGoogleConfigured || !btnRef.current) return undefined
+    let cancelled = false
     setError('')
-    setInfo('')
-    setBusy(false)
-  }, [open])
+    setReady(false)
+    renderGoogleButton(btnRef.current, 300, r => {
+      if (cancelled) return
+      if (r.error) { setError(r.error); return }
+      sfx.success()
+      closeRef.current()
+    })
+      .then(() => { if (!cancelled) setReady(true) })
+      .catch((e: unknown) => { if (!cancelled) setError(e instanceof Error ? e.message : 'حدث خطأ غير متوقع') })
+    return () => { cancelled = true }
+  }, [open, user])
+
+  useEffect(() => { setBroken(false) }, [user?.picture])
 
   // الإغلاق بمفتاح Esc
   useEffect(() => {
     if (!open) return undefined
     const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') {
-        sfx.close()
-        onClose()
-      }
+      if (e.key === 'Escape') { sfx.close(); closeRef.current() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, onClose])
-
-  const switchMode = (m: Mode): void => {
-    setMode(m)
-    setError('')
-    setInfo('')
-    setPassword('')
-    setConfirm('')
-  }
-
-  const submit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
-    e.preventDefault()
-    setError('')
-    setInfo('')
-    const mail = email.trim()
-    if (!mail || !password) {
-      setError('أدخل البريد الإلكتروني وكلمة المرور')
-      return
-    }
-    if (mode === 'signup') {
-      if (password.length < 6) {
-        setError('كلمة المرور يجب أن تكون 6 أحرف على الأقل')
-        return
-      }
-      if (password !== confirm) {
-        setError('كلمتا المرور غير متطابقتين')
-        return
-      }
-    }
-    setBusy(true)
-    try {
-      const res = mode === 'signin' ? await signInWithEmail(mail, password) : await signUpWithEmail(mail, password)
-      if (res.error) {
-        setError(res.error)
-        return
-      }
-      if (res.needsConfirmation) {
-        setInfo('تم إنشاء الحساب. افتح رسالة التأكيد في بريدك ثم سجّل الدخول.')
-        setMode('signin')
-        setPassword('')
-        setConfirm('')
-        return
-      }
-      sfx.success()
-      onClose() // نجح الدخول: تتحدّث الحالة تلقائياً عبر مستمع الجلسة
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const handleSignOut = async (): Promise<void> => {
-    setBusy(true)
-    const res = await signOutUser()
-    setBusy(false)
-    if (res.error) {
-      setError(res.error)
-      return
-    }
-    sfx.close()
-    onClose()
-  }
-
-  const tab = (m: Mode): React.CSSProperties => (mode === m ? { background: ACCENT, color: '#111' } : {})
+  }, [open])
 
   return (
     <AnimatePresence>
       {open && (
         <motion.div
           key="auth-modal"
-          className="fixed inset-0 z-40 flex items-center justify-center p-4"
+          className="fixed inset-0 flex items-center justify-center p-4"
+          style={{ zIndex: 2000 }} // فوق كل النوافذ العائمة
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => {
-              sfx.close()
-              onClose()
-            }}
-          />
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={close} />
+
           <motion.div
             role="dialog"
             aria-modal="true"
@@ -136,120 +71,81 @@ export default function AuthModal({ open, onClose }: Props) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.2 }}
-            className="relative w-full max-w-sm space-y-4 rounded-2xl border border-white/10 bg-[#0f1219]/90 p-5 shadow-2xl backdrop-blur-xl"
+            className="glass-strong relative w-full max-w-sm overflow-hidden rounded-2xl"
           >
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold" style={{ color: ACCENT }}>
-                {user ? 'حسابك' : mode === 'signin' ? 'تسجيل الدخول' : 'إنشاء حساب'}
-              </h2>
-              <button
-                aria-label="إغلاق"
-                onClick={() => {
-                  sfx.close()
-                  onClose()
-                }}
-              >
-                <X size={18} />
-              </button>
-            </div>
+            {/* وهج علوي بلون التوهّج الحالي */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-24 opacity-30"
+              style={{ background: 'radial-gradient(ellipse at top, var(--accent), transparent 70%)' }}
+            />
 
-            {!isSupabaseConfigured ? (
-              /* وضع الزائر: المفاتيح غير مضبوطة */
-              <div className="space-y-2 text-sm">
-                <p>أنت الآن في وضع الزائر، وكل ميزات التطبيق تعمل محلياً.</p>
-                <p className="opacity-70">لتفعيل الحسابات والمزامنة السحابية:</p>
-                <ol className="list-decimal space-y-1 pr-5 opacity-80">
-                  <li>أنشئ مشروعاً في Supabase.</li>
-                  <li>
-                    أضف <span dir="ltr">VITE_SUPABASE_URL</span> و<span dir="ltr">VITE_SUPABASE_ANON_KEY</span> في ملف <span dir="ltr">.env</span>.
-                  </li>
-                  <li>شغّل سكربت SQL من SQL Editor.</li>
-                  <li>أعد تشغيل خادم التطوير.</li>
-                </ol>
+            <div className="relative space-y-4 p-5">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold" style={{ color: 'var(--accent)' }}>
+                  {user ? 'حسابك' : 'تسجيل الدخول'}
+                </h2>
+                <button aria-label="إغلاق" onClick={close}><X size={18} /></button>
               </div>
-            ) : loading ? (
-              <p className="py-4 text-center text-sm opacity-70">جارٍ التحقق من الجلسة…</p>
-            ) : user ? (
-              /* مستخدم مسجّل */
-              <div className="space-y-3 text-sm">
-                <p>
-                  أنت مسجّل الدخول بالبريد:
-                  <br />
-                  <b className="break-all" dir="ltr">{user.email}</b>
-                </p>
-                {error && <p role="alert" className="text-red-300">{error}</p>}
-                <button className={`${btn} flex items-center gap-2`} disabled={busy} onClick={handleSignOut}>
-                  <LogOut size={14} />
-                  {busy ? 'جارٍ الخروج…' : 'تسجيل الخروج'}
-                </button>
-              </div>
-            ) : (
-              /* نموذج الدخول / إنشاء حساب */
-              <>
-                <div className="flex gap-2">
-                  <button type="button" className={btn} style={tab('signin')} onClick={() => switchMode('signin')}>
-                    دخول
-                  </button>
-                  <button type="button" className={btn} style={tab('signup')} onClick={() => switchMode('signup')}>
-                    حساب جديد
-                  </button>
-                </div>
 
-                <form onSubmit={submit} className="space-y-3" noValidate>
-                  <div className="space-y-1">
-                    <label htmlFor="auth-email" className="text-sm opacity-80">البريد الإلكتروني</label>
-                    <input
-                      id="auth-email"
-                      type="email"
-                      dir="ltr"
-                      autoComplete="email"
-                      value={email}
-                      onChange={ev => setEmail(ev.target.value)}
-                      className={`${field} w-full`}
-                      placeholder="name@example.com"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label htmlFor="auth-password" className="text-sm opacity-80">كلمة المرور</label>
-                    <input
-                      id="auth-password"
-                      type="password"
-                      dir="ltr"
-                      autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                      value={password}
-                      onChange={ev => setPassword(ev.target.value)}
-                      className={`${field} w-full`}
-                    />
-                  </div>
-                  {mode === 'signup' && (
-                    <div className="space-y-1">
-                      <label htmlFor="auth-confirm" className="text-sm opacity-80">تأكيد كلمة المرور</label>
-                      <input
-                        id="auth-confirm"
-                        type="password"
-                        dir="ltr"
-                        autoComplete="new-password"
-                        value={confirm}
-                        onChange={ev => setConfirm(ev.target.value)}
-                        className={`${field} w-full`}
+              {user ? (
+                /* ===== مستخدم مسجّل ===== */
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
+                    {user.picture && !broken ? (
+                      <img
+                        src={user.picture}
+                        alt=""
+                        referrerPolicy="no-referrer"
+                        onError={() => setBroken(true)}
+                        className="h-12 w-12 shrink-0 rounded-full object-cover"
+                        style={{ boxShadow: '0 0 0 2px var(--accent)' }}
                       />
+                    ) : (
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-bold text-black" style={{ background: 'var(--accent)' }}>
+                        {(user.name[0] ?? '?').toUpperCase()}
+                      </span>
+                    )}
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{user.name}</p>
+                      <p className="truncate text-xs opacity-70" dir="ltr">{user.email}</p>
                     </div>
-                  )}
-
-                  {error && <p role="alert" className="text-sm text-red-300">{error}</p>}
-                  {info && <p role="status" className="text-sm" style={{ color: ACCENT }}>{info}</p>}
+                  </div>
 
                   <button
-                    type="submit"
-                    disabled={busy}
-                    className="w-full rounded-lg px-3 py-2 text-sm font-semibold text-black transition active:scale-95 disabled:opacity-60"
-                    style={{ background: ACCENT }}
+                    onClick={() => { signOutGoogle(); sfx.close(); onClose() }}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-sm transition hover:bg-white/20 active:scale-95"
                   >
-                    {busy ? 'يرجى الانتظار…' : mode === 'signin' ? 'تسجيل الدخول' : 'إنشاء الحساب'}
+                    <LogOut size={14} />تسجيل الخروج
                   </button>
-                </form>
-              </>
-            )}
+                </div>
+              ) : !isGoogleConfigured ? (
+                /* ===== المعرّف غير مضبوط: خطوات الإعداد ===== */
+                <div className="space-y-2 text-sm">
+                  <p>تسجيل الدخول بحساب Google غير مفعّل بعد، والتطبيق يعمل كزائر.</p>
+                  <ol className="list-decimal space-y-1 pr-5 text-xs opacity-80">
+                    <li>أنشئ OAuth client ID من نوع Web في Google Cloud Console.</li>
+                    <li>أضف <span dir="ltr">http://localhost:5173</span> إلى Authorized JavaScript origins.</li>
+                    <li>ضع المعرّف في ملف <span dir="ltr">.env</span> باسم <span dir="ltr">VITE_GOOGLE_CLIENT_ID</span>.</li>
+                    <li>أعد تشغيل خادم التطوير.</li>
+                  </ol>
+                </div>
+              ) : (
+                /* ===== زر Google ===== */
+                <div className="space-y-4">
+                  <p className="text-sm opacity-80">سجّل الدخول بحسابك في Google لتخصيص مكتبتك.</p>
+                  <div className="flex min-h-11 items-center justify-center">
+                    <div ref={btnRef} />
+                    {!ready && !error && <span className="absolute text-xs opacity-60">جارٍ تحميل زر Google…</span>}
+                  </div>
+                  {error && <p role="alert" className="text-center text-sm text-red-300">{error}</p>}
+                  <p className="flex items-start gap-2 text-[11px] opacity-60">
+                    <ShieldCheck size={14} className="mt-0.5 shrink-0" />
+                    يُحفظ اسمك وبريدك وصورتك في هذا المتصفح فقط، ولا يُحفظ أي رمز دخول.
+                  </p>
+                </div>
+              )}
+            </div>
           </motion.div>
         </motion.div>
       )}

@@ -8,3 +8,8 @@
 # Context-Aware Prompting Rules
 - Always read PROJECT_CONTEXT.md and MEMORY_LOG.md before starting any task.
 - Check existing UI components in src/ before creating new ones to avoid code duplication.
+# Micro-Task Execution Rules
+- Break down every feature into small, incremental tasks.
+- Never write or modify more than 1-2 components in a single prompt.
+- Always ask for review or test verification after completing a task before moving to the next.
+- Keep responses concise, clear, and focused strictly on the active task.
