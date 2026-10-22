@@ -19,3 +19,8 @@ An interactive academic document and PDF transformation platform with AI summari
 - Before making major code changes, update this context file.
 - Work incrementally: write small, testable chunks of code.
 - Always check .clinerules for UI/UX guidelines before rendering components.
+
+## GitHub Pages Deployment
+- The project is hosted at the root domain `https://vexale.github.io/` and Vite uses relative asset URLs (`base: './'`).
+- GitHub Pages must publish a compiled Vite `dist` artifact, not the source `master` tree; serving `index.html` from source exposes `/src/main.tsx` and causes module MIME and public-asset 404 errors.
+- The GitHub Actions workflow builds with `npm ci` and `npm run build`, then publishes `dist` with the Pages artifact/deploy actions.
