@@ -47,7 +47,7 @@ export default function AppHeader({ accent, viewMode, onToggleViewMode, onOpenSe
     <header className="glass sticky top-0 z-20 rounded-none border-x-0 border-t-0">
       <div className="mx-auto flex h-14 w-full items-center justify-between gap-2 px-3 sm:px-5">
         <div className="flex min-w-0 items-center gap-3">
-          <img src="/logo.png" alt="" width={36} height={36} loading="eager" decoding="async" className="h-9 w-9 shrink-0 rounded-xl object-contain ring-1 ring-white/10 shadow-glow" />
+          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="" width={36} height={36} loading="eager" decoding="async" className="h-9 w-9 shrink-0 rounded-xl object-contain ring-1 ring-white/10 shadow-glow" />
           <h1 className="truncate bg-gradient-to-r from-violet-200 via-white to-sky-200 bg-clip-text text-lg font-semibold text-transparent sm:text-xl">vexale</h1>
         </div>
 
