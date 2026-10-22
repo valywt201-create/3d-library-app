@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Columns3, Expand, Languages, Library, Settings, UserRound } from 'lucide-react'
+import { Columns3, Expand, Languages, Settings, UserRound } from 'lucide-react'
 import { useGoogleAuth } from '../lib/googleAuth'
 import { setLocale, tr, useLocale } from '../lib/i18n'
 import type { ViewMode } from '../lib/settings'
@@ -47,8 +47,8 @@ export default function AppHeader({ accent, viewMode, onToggleViewMode, onOpenSe
     <header className="glass sticky top-0 z-20 rounded-none border-x-0 border-t-0">
       <div className="mx-auto flex h-14 w-full items-center justify-between gap-2 px-3 sm:px-5">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-black shadow-glow" style={{ background: `linear-gradient(135deg, ${accent}, #8b5cf6)` }}><Library size={18} /></span>
-          <h1 className="truncate bg-gradient-to-r from-violet-200 via-white to-sky-200 bg-clip-text text-lg font-semibold text-transparent sm:text-xl">{tr(locale, 'Digital Library', 'المكتبة الرقمية')}</h1>
+          <img src="/logo.png" alt="" width={36} height={36} loading="eager" decoding="async" className="h-9 w-9 shrink-0 rounded-xl object-contain ring-1 ring-white/10 shadow-glow" />
+          <h1 className="truncate bg-gradient-to-r from-violet-200 via-white to-sky-200 bg-clip-text text-lg font-semibold text-transparent sm:text-xl">vexale</h1>
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
