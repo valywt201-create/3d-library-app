@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArchiveRestore, Bot, Check, Palette, RotateCcw, Sparkles, Trash2, Wrench, X } from 'lucide-react'
+import { ArchiveRestore, Bot, Check, Palette, RotateCcw, ShieldCheck, Sparkles, Trash2, Wrench, X } from 'lucide-react'
 import { sfx, useLibrary, useTree } from '../shared'
 import {
   ACCENT_PRESETS, AI_PERSONALITIES, TOOL_CATALOG, TRASH_RETENTION_DAYS,
@@ -14,14 +14,17 @@ import { tr, useLocale } from '../lib/i18n'
 import { requestStudyAI } from '../lib/studyAssistant'
 import type { Locale } from '../lib/i18n'
 import SupportHub from './SupportHub'
+import LegalModal from './LegalModal'
 
-type TabId = 'look' | 'tools' | 'trash' | 'ai' | 'support'
+type TabId = 'look' | 'tools' | 'trash' | 'ai' | 'legal' | 'support'
+type LegalDocument = 'privacy' | 'terms'
 
 const TABS: readonly { id: TabId; label: { en: string; ar: string }; Icon: typeof Palette }[] = [
   { id: 'look', label: { en: 'Appearance', ar: 'المظهر' }, Icon: Palette },
   { id: 'tools', label: { en: 'Tools', ar: 'الأدوات' }, Icon: Wrench },
   { id: 'trash', label: { en: 'Trash', ar: 'المحذوفات' }, Icon: Trash2 },
   { id: 'ai', label: { en: 'AI style', ar: 'أسلوب AI' }, Icon: Bot },
+  { id: 'legal', label: { en: 'الخصوصية والشروط', ar: 'الخصوصية والشروط' }, Icon: ShieldCheck },
   { id: 'support', label: { en: 'Support', ar: 'الدعم' }, Icon: Sparkles },
 ]
 
@@ -206,6 +209,7 @@ export default function SettingsModal({ open, onClose, onRequestAuth }: Props) {
   const [tab, setTab] = useState<TabId>('look')
   const [themeBusy, setThemeBusy] = useState(false)
   const [themeMessage, setThemeMessage] = useState('')
+  const [legalDocument, setLegalDocument] = useState<LegalDocument | null>(null)
   const foreground = settings.accentMode === 'custom' ? readableOn(settings.customAccent) : '#111'
   const buttonStyle = (active: boolean): CSSProperties => active ? { background: HI, color: foreground } : {}
   const chip = 'rounded-lg bg-white/10 px-3 py-1.5 text-sm transition hover:bg-white/20 active:scale-95'
@@ -214,9 +218,11 @@ export default function SettingsModal({ open, onClose, onRequestAuth }: Props) {
 
   const close = useCallback((): void => {
     setTab('look')
+    setLegalDocument(null)
     sfx.close()
     onClose()
   }, [onClose])
+  const closeLegal = useCallback((): void => setLegalDocument(null), [])
 
   useEffect(() => {
     if (!open) return undefined
@@ -246,6 +252,7 @@ export default function SettingsModal({ open, onClose, onRequestAuth }: Props) {
   }
 
   return (
+    <>
     <AnimatePresence>
       {open && (
         <motion.div
@@ -446,11 +453,46 @@ export default function SettingsModal({ open, onClose, onRequestAuth }: Props) {
                 </section>
               )}
 
-              {tab === 'support' && <SupportHub onRequestAuth={onRequestAuth} />}
+              {tab === 'legal' && (
+                <section dir="rtl" className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-semibold">الخصوصية والشروط القانونية</h3>
+                    <p className="mt-1 text-xs leading-6 opacity-65">راجع كيفية معالجة الملفات والحسابات وخدمات الذكاء الاصطناعي، والشروط المنظمة لاستخدام المكتبة.</p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <article className="space-y-3 rounded-xl border border-white/10 bg-white/[0.035] p-4">
+                      <div className="flex items-center gap-2 text-violet-200"><ShieldCheck size={17} /><h4 className="text-sm font-semibold">سياسة الخصوصية</h4></div>
+                      <p className="text-xs leading-6 opacity-70">تفاصيل البيانات المحلية والسحابية، ومعالجة الملفات والذكاء الاصطناعي، والاحتفاظ والحقوق.</p>
+                      <button type="button" className={`${chip} w-full`} onClick={() => setLegalDocument('privacy')}>قراءة سياسة الخصوصية</button>
+                    </article>
+                    <article className="space-y-3 rounded-xl border border-white/10 bg-white/[0.035] p-4">
+                      <div className="flex items-center gap-2 text-violet-200"><ShieldCheck size={17} /><h4 className="text-sm font-semibold">شروط الاستخدام</h4></div>
+                      <p className="text-xs leading-6 opacity-70">تفاصيل الحساب والمحتوى والاستخدام المقبول وحدود الذكاء الاصطناعي والمسؤوليات.</p>
+                      <button type="button" className={`${chip} w-full`} onClick={() => setLegalDocument('terms')}>قراءة شروط الاستخدام</button>
+                    </article>
+                  </div>
+                  <p className="rounded-xl border border-amber-200/15 bg-amber-100/[0.04] p-3 text-xs leading-6 text-amber-100/80">تتضمن الوثيقتان حقولاً بين معقوفين يجب استكمالها ببيانات الجهة والولاية القضائية قبل نشر التطبيق للجمهور.</p>
+                </section>
+              )}
+
+              {tab === 'support' && (
+                <div className="space-y-4">
+                  <SupportHub onRequestAuth={onRequestAuth} />
+                  <section className="space-y-2 border-t border-white/10 pt-4">
+                    <h3 className="text-sm font-semibold">المعلومات القانونية</h3>
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button" className={chip} onClick={() => setLegalDocument('privacy')}>سياسة الخصوصية</button>
+                      <button type="button" className={chip} onClick={() => setLegalDocument('terms')}>شروط الاستخدام</button>
+                    </div>
+                  </section>
+                </div>
+              )}
             </div>
           </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
+    <LegalModal document={legalDocument} onSelect={setLegalDocument} onClose={closeLegal} />
+    </>
   )
 }
