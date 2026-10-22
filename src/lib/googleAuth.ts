@@ -9,6 +9,7 @@ export const isGoogleConfigured: boolean = /^\d+-[A-Za-z0-9_-]+\.apps\.googleuse
 const KEY = 'atelier-google-auth-v1'
 const SESSION_DAYS = 30
 const DAY_MS = 86_400_000
+let activeGoogleIdToken: string | null = null
 
 /* ============ الأنواع ============ */
 export interface GoogleUser {
@@ -77,6 +78,7 @@ function setUser(user: GoogleUser | null): void {
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', e => {
     if (e.key !== KEY) return
+    activeGoogleIdToken = null
     state = { user: load() }
     listeners.forEach(l => l())
   })
@@ -123,6 +125,7 @@ export function signInWithGoogleCredential(credential: string): AuthResult {
   const name = c.name
   const picture = c.picture
 
+  activeGoogleIdToken = credential
   setUser({
     sub,
     email,
@@ -131,6 +134,17 @@ export function signInWithGoogleCredential(credential: string): AuthResult {
     signedInAt: Date.now(),
   })
   return { error: null }
+}
+
+// يُحتفظ بالرمز في الذاكرة فقط، ولا يُكتب إلى localStorage أو sessionStorage.
+export function getGoogleIdToken(): string | null {
+  if (!activeGoogleIdToken) return null
+  const claims = decodeJwt(activeGoogleIdToken)
+  if (typeof claims?.exp !== 'number' || claims.exp * 1000 <= Date.now() + 30_000) {
+    activeGoogleIdToken = null
+    return null
+  }
+  return activeGoogleIdToken
 }
 
 /* ============ تحميل زر Google الرسمي (Google Identity Services) ============ */
@@ -196,6 +210,7 @@ export async function renderGoogleButton(el: HTMLElement, width: number, onResul
 }
 
 export function signOutGoogle(): void {
+  activeGoogleIdToken = null
   setUser(null)
   try { getGsi()?.disableAutoSelect() } catch { /* تجاهل */ }
 }

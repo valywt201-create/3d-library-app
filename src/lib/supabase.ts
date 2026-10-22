@@ -35,7 +35,9 @@ export interface UserFile {
 
 /* ============ إنشاء العميل (مع وضع بديل عند غياب الإعدادات) ============ */
 const rawUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined
-const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
+const rawKey =
+  ((import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ?? '').trim() ||
+  ((import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ?? '').trim()
 
 function createSafeClient(): SupabaseClient | null {
   if (!rawUrl || !rawKey) return null

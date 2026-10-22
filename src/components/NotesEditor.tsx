@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { BookOpenText, Bold, Code2, Heading2, Heading3, Italic, List, ListOrdered, LoaderCircle, Quote, Redo2, Save, Underline, Undo2 } from 'lucide-react'
+import { BookOpenText, Bold, Bot, Code2, Heading2, Heading3, Italic, List, ListChecks, ListOrdered, LoaderCircle, Quote, Redo2, Save, Send, Sparkles, Underline, Undo2 } from 'lucide-react'
 import { dbGetNote, dbPutNote } from '../db'
+import { requestStudyAI } from '../lib/studyAssistant'
+import type { StudyAction } from '../lib/studyAssistant'
 
 interface NotesEditorProps {
   nodeId: string
@@ -69,6 +71,11 @@ export default function NotesEditor({ nodeId, title }: NotesEditorProps) {
   const [revision, setRevision] = useState(0)
   const [hasContent, setHasContent] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [assistantOpen, setAssistantOpen] = useState(false)
+  const [assistantBusy, setAssistantBusy] = useState(false)
+  const [assistantQuestion, setAssistantQuestion] = useState('')
+  const [assistantAnswer, setAssistantAnswer] = useState('')
+  const [assistantError, setAssistantError] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -154,6 +161,39 @@ export default function NotesEditor({ nodeId, title }: NotesEditorProps) {
         setSaveError('تعذّر حفظ الملاحظات. قد تكون مساحة تخزين المتصفح ممتلئة أو غير متاحة.')
         setSaveState('error')
       })
+  }
+
+  const runAssistant = async (action: StudyAction): Promise<void> => {
+    if (assistantBusy) return
+
+    const notes = editorRef.current?.innerText.trim() ?? ''
+    const question = assistantQuestion.trim()
+    if (action !== 'answer' && !notes) {
+      setAssistantError('أضف ملاحظات إلى هذا القسم قبل تلخيصها أو إنشاء اختبار.')
+      return
+    }
+    if (action === 'answer' && !question) {
+      setAssistantError('اكتب سؤالاً أولاً ليجيب عنه المساعد.')
+      return
+    }
+
+    setAssistantBusy(true)
+    setAssistantError('')
+    setAssistantAnswer('')
+    try {
+      const answer = await requestStudyAI({
+        action,
+        nodeTitle: title,
+        notes,
+        question,
+      })
+      setAssistantAnswer(answer)
+      if (action === 'answer') setAssistantQuestion('')
+    } catch (error) {
+      setAssistantError(error instanceof Error ? error.message : 'تعذّر إكمال طلب مساعد الدراسة.')
+    } finally {
+      setAssistantBusy(false)
+    }
   }
 
   const runCommand = (command: EditorCommand): void => {
@@ -286,6 +326,105 @@ export default function NotesEditor({ nodeId, title }: NotesEditorProps) {
           className="min-h-56 max-h-[60vh] overflow-y-auto rounded-lg border border-white/10 bg-slate-950/40 px-3 py-2 text-sm leading-7 outline-none transition focus:border-white/25 focus:ring-1 focus:ring-white/10 [&_a]:text-sky-300 [&_blockquote]:my-2 [&_blockquote]:border-r-2 [&_blockquote]:border-violet-300 [&_blockquote]:pr-3 [&_code]:rounded [&_code]:bg-black/30 [&_code]:px-1 [&_h2]:my-3 [&_h2]:text-lg [&_h2]:font-bold [&_h3]:my-2 [&_h3]:text-base [&_h3]:font-semibold [&_li]:mr-5 [&_ol]:list-decimal [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-black/50 [&_pre]:p-3 [&_ul]:list-disc"
         />
       </div>
+
+      <section className="overflow-hidden rounded-xl border border-violet-300/20 bg-violet-400/[0.04]">
+        <button
+          type="button"
+          aria-expanded={assistantOpen}
+          onClick={() => setAssistantOpen(value => !value)}
+          className="flex w-full items-center justify-between gap-2 px-3 py-2.5 text-sm font-semibold transition hover:bg-white/5"
+        >
+          <span className="flex items-center gap-2">
+            <Bot size={17} style={{ color: 'var(--accent)' }} />
+            مساعد الدراسة
+          </span>
+          <span className="text-xs opacity-60">{assistantOpen ? 'إخفاء' : 'تلخيص، اختبار، سؤال'}</span>
+        </button>
+
+        {assistantOpen && (
+          <div className="space-y-3 border-t border-white/10 p-3">
+            <p className="text-xs leading-6 opacity-70">
+              لا تُرسل الملاحظات تلقائياً. عند اختيار إجراء أدناه، يُرسل نص هذا القسم إلى Google Gemini لمعالجته؛ لا ترسل معلومات لا تريد مشاركتها مع الخدمة.
+            </p>
+            <p className="text-[11px] leading-5 text-amber-100/70">
+              وفق صفحة أسعار Gemini الحالية، قد تستخدم Google بيانات الطبقة المجانية لتحسين منتجاتها. تجنّب إرسال معلومات حساسة، وراجع شروط الخدمة قبل الاستخدام.
+            </p>
+            <p className="text-[11px] leading-5 opacity-55">
+              يتطلب المساعد جلسة Google فعالة في علامة التبويب الحالية؛ بعد إعادة تحميل الصفحة، سجّل الخروج ثم الدخول مجدداً إذا طُلب تجديد الجلسة.
+            </p>
+
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={assistantBusy || !hasContent}
+                onClick={() => void runAssistant('summarize')}
+                className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Sparkles size={14} />تلخيص الملاحظات
+              </button>
+              <button
+                type="button"
+                disabled={assistantBusy || !hasContent}
+                onClick={() => void runAssistant('quiz')}
+                className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ListChecks size={14} />إنشاء اختبار مراجعة
+              </button>
+            </div>
+
+            <form
+              className="space-y-2"
+              onSubmit={event => {
+                event.preventDefault()
+                void runAssistant('answer')
+              }}
+            >
+              <label htmlFor={`study-question-${nodeId}`} className="block text-xs font-medium">اسأل عن هذا القسم</label>
+              <div className="flex items-end gap-2">
+                <textarea
+                  id={`study-question-${nodeId}`}
+                  value={assistantQuestion}
+                  onChange={event => setAssistantQuestion(event.target.value)}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+                      event.preventDefault()
+                      void runAssistant('answer')
+                    }
+                  }}
+                  rows={2}
+                  maxLength={1_200}
+                  placeholder="اكتب سؤالاً مرتبطاً بملاحظات القسم…"
+                  dir="auto"
+                  className="min-h-11 min-w-0 flex-1 resize-y rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm outline-none focus:border-white/25 focus:ring-1 focus:ring-white/10"
+                />
+                <button
+                  type="submit"
+                  disabled={assistantBusy || !assistantQuestion.trim()}
+                  aria-label="إرسال السؤال إلى مساعد الدراسة"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-black transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{ background: 'var(--accent)' }}
+                >
+                  {assistantBusy ? <LoaderCircle size={16} className="animate-spin" /> : <Send size={16} className="-scale-x-100" />}
+                </button>
+              </div>
+              <p className="text-[10px] opacity-45">يمكنك الضغط على Ctrl+Enter للإرسال.</p>
+            </form>
+
+            {assistantBusy && (
+              <p role="status" aria-live="polite" className="flex items-center gap-2 text-xs opacity-70">
+                <LoaderCircle size={14} className="animate-spin" />جارٍ إعداد إجابة من ملاحظات هذا القسم…
+              </p>
+            )}
+            {assistantError && <p role="alert" className="rounded-lg border border-red-300/20 bg-red-400/10 p-2 text-xs text-red-200">{assistantError}</p>}
+            {assistantAnswer && (
+              <div aria-live="polite" className="space-y-1 rounded-lg border border-white/10 bg-black/20 p-3">
+                <h4 className="text-xs font-semibold" style={{ color: 'var(--accent)' }}>إجابة مساعد الدراسة</h4>
+                <p dir="auto" className="whitespace-pre-wrap text-sm leading-7">{assistantAnswer}</p>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
 
       {saveError && <p role="alert" className="text-xs text-red-300">{saveError}</p>}
       <p className="text-[11px] opacity-45">تُحفظ هذه الملاحظات على هذا الجهاز وتبقى منفصلة لكل قسم وفرع.</p>
