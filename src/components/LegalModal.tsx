@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
+import { useLocale } from '../lib/i18n'
+import type { Locale } from '../lib/i18n'
 
 export type LegalDocument = 'privacy' | 'terms'
 interface Props {
@@ -8,100 +10,112 @@ interface Props {
   onSelect: (document: LegalDocument) => void
   onClose: () => void
 }
-interface LegalSection { heading: string; paragraphs: string[] }
-interface LegalContent { title: string; summary: string; sections: LegalSection[] }
+type LocalizedText = Record<Locale, string>
+interface LegalSection { heading: LocalizedText; paragraphs: LocalizedText[] }
+interface LegalContent { title: LocalizedText; summary: LocalizedText; sections: LegalSection[] }
 
-const LAST_UPDATED = '٢٢ أكتوبر ٢٠٢٦'
+const LAST_UPDATED: LocalizedText = { en: 'October 22, 2026', ar: '٢٢ أكتوبر ٢٠٢٦' }
 const content: Record<LegalDocument, LegalContent> = {
   privacy: {
-    title: 'سياسة الخصوصية',
-    summary: 'تشرح هذه السياسة أنواع البيانات التي قد تعالجها المكتبة الرقمية، وأغراض استخدامها، والخيارات المتاحة لك. تنطبق على التطبيق ومزاياه المحلية والسحابية والذكية بحسب ما تختار استخدامه وإعداده.',
+    title: { en: 'Privacy Policy', ar: 'سياسة الخصوصية' },
+    summary: {
+      en: 'This notice explains how vexale handles account information, library content, and technical data when you use its local, cloud, and AI features.',
+      ar: 'توضح هذه السياسة كيفية تعامل vexale مع معلومات الحساب ومحتوى المكتبة والبيانات التقنية عند استخدام الميزات المحلية والسحابية وميزات الذكاء الاصطناعي.'
+    },
     sections: [
-      { heading: '١. الجهة المسؤولة ونطاق السياسة', paragraphs: [
-        'مشغّل التطبيق هو [اسم الجهة أو الشخص القانوني]، وعنوان التواصل الخاص بالخصوصية هو [البريد الإلكتروني أو وسيلة التواصل]. يجب استكمال هاتين القيمتين وبيانات النشاط والولاية القضائية قبل إتاحة الخدمة للجمهور.',
-        'تصف هذه الوثيقة طريقة معالجة التطبيق للبيانات، ولا تحل محل إشعارات الخصوصية أو شروط مزودي الخدمات الخارجيين الذين تختار استخدامهم.'
+      { heading: { en: '1. Who we are and scope', ar: '١. الجهة المسؤولة ونطاق السياسة' }, paragraphs: [
+        { en: 'vexale is the brand and project name for this digital library and study workspace. It is operated by the vexale Development Team in Iraq. For privacy questions, contact vexale.support@gmail.com.', ar: 'vexale هو الاسم التجاري واسم المشروع لهذه المكتبة الرقمية ومساحة الدراسة. يشغّله فريق تطوير vexale في العراق. للاستفسارات المتعلقة بالخصوصية، راسل vexale.support@gmail.com.' },
+        { en: 'This policy applies to the app and the features you choose to use. Separate terms and privacy notices from third-party providers may also apply to those services.', ar: 'تنطبق هذه السياسة على التطبيق والميزات التي تختار استخدامها. وقد تنطبق أيضاً شروط وإشعارات خصوصية مستقلة لمزودي الخدمات الخارجيين.' }
       ] },
-      { heading: '٢. البيانات التي قد نعالجها', paragraphs: [
-        'بيانات الحساب: معرّف المستخدم ومعلومات الحساب التي يوفّرها مزود تسجيل الدخول، مثل الاسم أو البريد أو الصورة، بحسب إعدادات حسابك ومزود الهوية.',
-        'محتوى المكتبة: الملفات والملاحظات والعناوين وبنية الأقسام والفروع. يُخزَّن المحتوى المحلي في مساحة تخزين المتصفح على جهازك. وقد تُعالج بيانات محددة عبر Supabase عند استخدام مزايا الحساب أو المزامنة أو المساحات المشتركة المفعّلة.',
-        'بيانات الاستخدام: يسجل عدّاد الذكاء الاصطناعي معرّف الحساب وتاريخ UTC وعدد الطلبات لتطبيق الحد اليومي. لا يتضمن صف العداد نص السؤال أو محتوى الملف.',
-        'بيانات تقنية أساسية قد تنتج عن الاتصال بالخدمات، مثل عنوان الشبكة ومعلومات المتصفح ووقت الطلب، وفق ما تسجله البنية التحتية ومزودوها.'
+      { heading: { en: '2. Information we may process', ar: '٢. المعلومات التي قد نعالجها' }, paragraphs: [
+        { en: 'Account information may include your account identifier and profile details supplied by your sign-in provider, such as your name, email address, or profile image.', ar: 'قد تتضمن معلومات الحساب معرّف حسابك وبيانات الملف الشخصي التي يوفّرها مزود تسجيل الدخول، مثل الاسم أو البريد الإلكتروني أو صورة الملف الشخصي.' },
+        { en: 'Library content includes files, notes, titles, and folder structure. Content saved locally is stored in browser storage on your device. If you sign in and use enabled cloud features, relevant account or workspace data may be processed by Supabase.', ar: 'يشمل محتوى المكتبة الملفات والملاحظات والعناوين وبنية المجلدات. يُخزَّن المحتوى المحفوظ محلياً في مساحة تخزين المتصفح على جهازك. وعند تسجيل الدخول واستخدام ميزات سحابية مفعّلة، قد يعالج Supabase بيانات الحساب أو مساحة العمل ذات الصلة.' },
+        { en: 'To enforce daily AI limits, the service may record an account identifier, a UTC date, and a request count. That usage counter does not contain the text of your prompt or file.', ar: 'لتطبيق حدود الاستخدام اليومية للذكاء الاصطناعي، قد تسجل الخدمة معرّف الحساب وتاريخاً بتوقيت UTC وعدد الطلبات. ولا يتضمن عدّاد الاستخدام نص السؤال أو محتوى الملف.' },
+        { en: 'Service providers may collect basic technical information generated by connections, such as network, browser, and request information, under their own infrastructure practices.', ar: 'قد يجمع مزودو الخدمة معلومات تقنية أساسية تنتج عن الاتصال، مثل معلومات الشبكة والمتصفح والطلبات، وفق ممارسات البنية التحتية لديهم.' }
       ] },
-      { heading: '٣. معالجة الملفات والذكاء الاصطناعي', paragraphs: [
-        'تُستخرج النصوص القابلة للقراءة من الملفات محلياً في متصفحك. عند إرسال سؤال إلى مساعد المكتبة، يختار التطبيق المقاطع التي تبدو أكثر صلة من ملفات المكتبة ويضمّها إلى السؤال، ثم يرسلها عبر وظيفة Supabase إلى خدمة Google Gemini لتوليد الرد.',
-        'لا يُرسل الملف الصوتي تلقائياً: يجب أن تحدده صراحةً من الواجهة. يسمح التطبيق حالياً بملفين صوتيين كحد أقصى، وبحجم أقصى يبلغ ١٫٢ ميغابايت لكل ملف. وقد تُرسل ملفات الصور أو المقاطع الصوتية المحددة إلى مزود الذكاء الاصطناعي عند طلب تحليلها.',
-        'قد تُرسل بعض ميزات المساعد الأخرى النص الذي تختاره أو تكتبه إلى خدمة الذكاء الاصطناعي. لا ترسل كلمات مرور أو بيانات دفع أو سجلات طبية أو أسرار عمل أو محتوى لا تملك حق مشاركته. راجع شروط وسياسات Google وSupabase قبل استخدام هذه الميزات.'
+      { heading: { en: '3. Files and AI features', ar: '٣. الملفات وميزات الذكاء الاصطناعي' }, paragraphs: [
+        { en: 'The app extracts readable text from supported documents in your browser. When you submit a question to Library Chat, it selects relevant text from your library and sends the question and selected excerpts through a Supabase function to Google Gemini to generate a response.', ar: 'يستخرج التطبيق النص القابل للقراءة من المستندات المدعومة داخل المتصفح. وعند إرسال سؤال إلى محادثة المكتبة، يختار مقاطع ذات صلة من مكتبتك ويرسل السؤال والمقاطع المختارة عبر وظيفة Supabase إلى Google Gemini لإنشاء الرد.' },
+        { en: 'Audio files are not sent automatically: you must select them in the interface. The current interface allows up to two audio files, each no larger than 1.2 MB. Images or selected audio may be sent to the AI provider when you request analysis.', ar: 'لا تُرسل الملفات الصوتية تلقائياً؛ بل يجب أن تختارها من الواجهة. تسمح الواجهة الحالية بملفين صوتيين كحد أقصى، على ألا يتجاوز حجم كل ملف ١٫٢ ميغابايت. وقد تُرسل الصور أو الملفات الصوتية التي تحددها إلى مزود الذكاء الاصطناعي عندما تطلب تحليلها.' },
+        { en: 'Other AI tools may process the text or material you choose to submit. Do not send passwords, payment details, medical records, confidential business information, or content you do not have the right to share. Review Google and Supabase terms and policies before using their features.', ar: 'قد تعالج أدوات الذكاء الاصطناعي الأخرى النص أو المواد التي تختار إرسالها. لا ترسل كلمات مرور أو بيانات دفع أو سجلات طبية أو معلومات عمل سرية أو محتوى لا تملك حق مشاركته. راجع شروط وسياسات Google وSupabase قبل استخدام ميزاتهما.' }
       ] },
-      { heading: '٤. أغراض المعالجة', paragraphs: [
-        'نستخدم البيانات لتشغيل المكتبة وحفظ ما تختار مزامنته، وتسجيل الدخول وإدارة الجلسات، وتقديم البحث والمساعدة الذكية، وحماية الخدمة، وتطبيق حدود الاستخدام، ومعالجة الأعطال والطلبات التي تبادر بها.'
+      { heading: { en: '4. Why information is used', ar: '٤. أغراض استخدام المعلومات' }, paragraphs: [
+        { en: 'Information is used to operate the library, save content you choose to sync, manage sign-in and sessions, provide search and AI assistance, apply usage limits, protect the service, and respond to requests or technical issues.', ar: 'تُستخدم المعلومات لتشغيل المكتبة وحفظ المحتوى الذي تختار مزامنته وإدارة تسجيل الدخول والجلسات وتقديم البحث والمساعدة الذكية وتطبيق حدود الاستخدام وحماية الخدمة والاستجابة للطلبات أو المشكلات التقنية.' }
       ] },
-      { heading: '٥. مزودو الخدمات والمشاركة', paragraphs: [
-        'عند تفعيل ميزاتها، تتعامل الخدمة مع Supabase لاستضافة المصادقة وقاعدة البيانات والوظائف السحابية، ومع Google لتسجيل الدخول أو معالجة طلبات Gemini. تنتقل البيانات اللازمة فقط لتنفيذ الميزة التي تستخدمها، وفق إعدادات المشروع وعقود المزودين وسياساتهم.',
-        'لا يمنح استخدام التطبيق الإذن بنشر ملفاتك علناً. ولا تُشارك محتويات المكتبة مع مستخدمين آخرين إلا عندما تختار ميزة مشاركة أو مساحة مشتركة وتؤكدها.'
+      { heading: { en: '5. Service providers and sharing', ar: '٥. مزودو الخدمات ومشاركة البيانات' }, paragraphs: [
+        { en: 'When enabled, the app uses Supabase for authentication, database, and cloud functions, and Google for sign-in or Gemini processing. Only information needed for the feature you request should be transmitted, subject to project configuration and provider terms.', ar: 'عند تفعيلها، يستخدم التطبيق Supabase للمصادقة وقاعدة البيانات والوظائف السحابية، ويستخدم Google لتسجيل الدخول أو معالجة Gemini. وينبغي إرسال المعلومات اللازمة للميزة التي تطلبها فقط، وفق إعدادات المشروع وشروط المزودين.' },
+        { en: 'Using the app does not make your files public. Library content is shared with other users only when you choose and confirm a sharing or shared-workspace feature.', ar: 'لا يؤدي استخدام التطبيق إلى نشر ملفاتك للعامة. ولا تتم مشاركة محتوى المكتبة مع مستخدمين آخرين إلا عندما تختار ميزة مشاركة أو مساحة عمل مشتركة وتؤكد استخدامها.' }
       ] },
-      { heading: '٦. التخزين والاحتفاظ والحذف', paragraphs: [
-        'قد تبقى الملفات المحلية على جهازك حتى تحذفها من التطبيق أو تمسح بيانات الموقع من المتصفح. حذف التطبيق أو تغيير الجهاز لا يضمن نقل النسخة المحلية أو استعادتها؛ احتفظ بنسخ احتياطية مما تحتاجه.',
-        'تُحفظ بيانات الحساب والعداد السحابي طالما اقتضى تشغيل الحساب أو تطبيق حد الاستخدام، ثم وفق إعدادات الاحتفاظ والمتطلبات النظامية المطبقة على الجهة المشغّلة ومزوديها. لا نستطيع من خلال هذه الواجهة تحديد مدة احتفاظ سجلات البنية التحتية التابعة للمزودين.',
-        'لطلب الوصول إلى بيانات حسابك أو تصحيحها أو حذفها، تواصل مع الجهة المشغّلة عبر [وسيلة التواصل]. قد نحتاج إلى التحقق من هويتك، وقد توجد بيانات يتعين الاحتفاظ بها لأسباب أمنية أو نظامية.'
+      { heading: { en: '6. Storage, retention, and deletion', ar: '٦. التخزين والاحتفاظ والحذف' }, paragraphs: [
+        { en: 'Local files may remain on your device until you delete them in the app or clear this site’s browser data. Local content may not automatically transfer to another device, so keep backups of anything important.', ar: 'قد تبقى الملفات المحلية على جهازك حتى تحذفها من التطبيق أو تمسح بيانات هذا الموقع من المتصفح. وقد لا ينتقل المحتوى المحلي تلقائياً إلى جهاز آخر، لذا احتفظ بنسخ احتياطية مما يهمك.' },
+        { en: 'Account and cloud data are retained for as long as needed to provide the selected features, enforce limits, meet security needs, and comply with applicable requirements. Provider infrastructure logs may be retained under the providers’ own policies.', ar: 'يُحتفَظ ببيانات الحساب والسحابة ما دامت لازمة لتقديم الميزات المختارة وتطبيق الحدود وتلبية متطلبات الأمان والامتثال للمتطلبات النافذة. وقد يحتفظ مزودو الخدمة بسجلات البنية التحتية وفق سياساتهم.' },
+        { en: 'For requests to access, correct, or delete account data, contact vexale.support@gmail.com. We may need to verify your identity, and some information may need to be retained for security or legal reasons.', ar: 'لطلب الوصول إلى بيانات الحساب أو تصحيحها أو حذفها، راسل vexale.support@gmail.com. وقد نحتاج إلى التحقق من هويتك، كما قد يلزم الاحتفاظ ببعض المعلومات لأسباب أمنية أو قانونية.' }
       ] },
-      { heading: '٧. الأمان', paragraphs: [
-        'نستخدم ضوابط مناسبة لطبيعة الخدمة، مثل التحقق من جلسة الحساب، وتقييد الوصول إلى عدّاد الاستخدام، وإبقاء مفاتيح النماذج في أسرار الخادم لا في حزمة المتصفح. لا توجد وسيلة نقل أو تخزين مضمونة الأمان بالكامل؛ احمِ جهازك وحسابك ولا تشارك بيانات الدخول.'
+      { heading: { en: '7. Security', ar: '٧. الأمان' }, paragraphs: [
+        { en: 'The service uses safeguards appropriate to its features, including session checks, restricted access to usage counters, and server-side storage of model credentials. No transmission or storage method is completely secure; protect your device and sign-in credentials.', ar: 'تستخدم الخدمة تدابير حماية ملائمة لميزاتها، ومنها التحقق من الجلسات وتقييد الوصول إلى عدّادات الاستخدام وحفظ بيانات اعتماد النماذج على الخادم. لا توجد وسيلة نقل أو تخزين آمنة بالكامل؛ لذا احمِ جهازك وبيانات تسجيل الدخول.' }
       ] },
-      { heading: '٨. حقوقك وخياراتك', paragraphs: [
-        'يمكنك تجنب الميزات السحابية والذكية، وعدم تسجيل الدخول، وعدم تحديد ملفات صوتية. قد يؤدي ذلك إلى عدم توفر بعض وظائف التطبيق. كما يمكنك إدارة الملفات المحلية من واجهة المكتبة وطلب التعامل مع بيانات الحساب عبر وسيلة التواصل الموضحة أعلاه، مع مراعاة القوانين المطبقة.'
+      { heading: { en: '8. Your choices and rights', ar: '٨. خياراتك وحقوقك' }, paragraphs: [
+        { en: 'You may avoid cloud and AI features, choose not to sign in, and choose whether to select audio files. Some features may then be unavailable. You can manage local files in the library and contact vexale.support@gmail.com about account-data requests, subject to applicable law.', ar: 'يمكنك عدم استخدام الميزات السحابية أو الذكية، وعدم تسجيل الدخول، واختيار ما إذا كنت ستحدد ملفات صوتية. وقد لا تتوفر بعض الميزات عندئذ. يمكنك إدارة الملفات المحلية من المكتبة ومراسلة vexale.support@gmail.com بشأن طلبات بيانات الحساب، مع مراعاة القانون النافذ.' }
       ] },
-      { heading: '٩. الأطفال والتغييرات والتواصل', paragraphs: [
-        'الخدمة ليست مصممة لتشجيع الأطفال على إرسال معلوماتهم الشخصية. إذا كنت ولياً وتعتقد أن طفلاً أرسل بيانات شخصية دون موافقة لازمة، فتواصل مع الجهة المشغّلة عبر [وسيلة التواصل].',
-        'قد تُحدَّث هذه السياسة عند تغيير التطبيق أو المتطلبات النظامية. سنعرض تاريخ آخر تحديث في هذه النافذة، وعلى الجهة المشغّلة إبلاغ المستخدمين بالتغييرات الجوهرية بالطريقة المناسبة.',
-        'آخر تحديث: ' + LAST_UPDATED + '. مشغّل التطبيق: [اسم الجهة]. أسئلة الخصوصية: [البريد الإلكتروني أو وسيلة التواصل].'
-      ] },
-    ],
+      { heading: { en: '9. Children, updates, and contact', ar: '٩. الأطفال والتحديثات والتواصل' }, paragraphs: [
+        { en: 'vexale is not designed to encourage children to submit personal information. A parent or guardian who believes a child submitted personal data without required consent may contact vexale.support@gmail.com.', ar: 'لم تُصمم vexale لتشجيع الأطفال على إرسال معلوماتهم الشخصية. ويمكن لولي الأمر الذي يعتقد أن طفلاً أرسل بيانات شخصية دون الموافقة اللازمة التواصل عبر vexale.support@gmail.com.' },
+        { en: 'This policy may be updated as the service or applicable requirements change. The latest update date is shown above. Privacy questions: vexale.support@gmail.com. Responsible entity: vexale Development Team, Iraq.', ar: 'قد تُحدَّث هذه السياسة عند تغيير الخدمة أو المتطلبات النافذة. يظهر تاريخ آخر تحديث أعلاه. للاستفسارات المتعلقة بالخصوصية: vexale.support@gmail.com. الجهة المسؤولة: فريق تطوير vexale في العراق.' }
+      ] }
+    ]
   },
   terms: {
-    title: 'شروط الاستخدام',
-    summary: 'تنظم هذه الشروط وصولك إلى المكتبة الرقمية واستخدامك لها. اقرأها مع سياسة الخصوصية. استكمل بيانات الجهة والولاية القضائية أدناه واطلب مراجعة مختص قبل الاعتماد عليها قانونياً.',
+    title: { en: 'Terms of Service', ar: 'شروط الخدمة' },
+    summary: {
+      en: 'These terms govern your access to vexale and its local, cloud, and AI features. Read them together with the Privacy Policy.',
+      ar: 'تنظم هذه الشروط وصولك إلى vexale واستخدامك لميزاتها المحلية والسحابية وميزات الذكاء الاصطناعي. اقرأها مع سياسة الخصوصية.'
+    },
     sections: [
-      { heading: '١. الجهة ونطاق الاتفاق', paragraphs: [
-        'يُشغَّل التطبيق بواسطة [اسم الجهة أو الشخص القانوني]، المسجل أو المقيم في [المدينة والدولة]، ويمكن التواصل معه عبر [البريد الإلكتروني أو وسيلة التواصل]. يشير «التطبيق» إلى المكتبة الرقمية وواجهاتها ومزاياها المحلية والسحابية.',
-        'باستخدامك التطبيق، فإنك تقر بأنك قرأت هذه الشروط وسياسة الخصوصية. إذا لم توافق عليها، فتوقف عن الاستخدام ولا ترسل ملفات إلى الخدمات الذكية.'
+      { heading: { en: '1. Operator and agreement', ar: '١. الجهة المشغّلة والاتفاق' }, paragraphs: [
+        { en: 'vexale is the brand and project name for this digital library and study workspace. The service is operated by the vexale Development Team in Iraq. Contact: vexale.support@gmail.com.', ar: 'vexale هو الاسم التجاري واسم المشروع لهذه المكتبة الرقمية ومساحة الدراسة. يشغّل الخدمة فريق تطوير vexale في العراق. للتواصل: vexale.support@gmail.com.' },
+        { en: 'By accessing or using the app, you agree to these terms and the Privacy Policy. If you do not agree, stop using the service and do not submit content to its AI features.', ar: 'بدخولك إلى التطبيق أو استخدامه، فإنك توافق على هذه الشروط وسياسة الخصوصية. إذا لم توافق، فتوقف عن استخدام الخدمة ولا ترسل محتوى إلى ميزات الذكاء الاصطناعي.' }
       ] },
-      { heading: '٢. الأهلية والحساب وأمنه', paragraphs: [
-        'يجب أن تكون مؤهلاً قانوناً لاستخدام الخدمة في بلدك. إذا كنت دون السن الذي يسمح به القانون المحلي، فلا تستخدم ميزات الحساب أو الذكاء الاصطناعي إلا بموافقة وليك وبما يجيزه القانون.',
-        'أنت مسؤول عن دقة معلومات حسابك وعن حماية بيانات الدخول والجهاز الذي تستخدمه، وعن الأنشطة التي تتم من خلال جلستك. أخطر الجهة المشغّلة عبر [وسيلة التواصل] عند الاشتباه باستخدام غير مصرح به.'
+      { heading: { en: '2. Eligibility and account security', ar: '٢. الأهلية وأمان الحساب' }, paragraphs: [
+        { en: 'You must be legally permitted to use the service where you live. If local law requires a parent or guardian’s consent, do not use account or AI features without that consent.', ar: 'يجب أن يسمح القانون في محل إقامتك باستخدام الخدمة. وإذا كان القانون المحلي يشترط موافقة ولي الأمر، فلا تستخدم ميزات الحساب أو الذكاء الاصطناعي دون تلك الموافقة.' },
+        { en: 'You are responsible for keeping your account information accurate, protecting your sign-in credentials and device, and activity performed through your session. Report suspected unauthorized use to vexale.support@gmail.com.', ar: 'أنت مسؤول عن دقة معلومات الحساب وحماية بيانات تسجيل الدخول والجهاز والأنشطة التي تتم عبر جلستك. أبلغ عن أي استخدام غير مصرح به إلى vexale.support@gmail.com.' }
       ] },
-      { heading: '٣. المحتوى وحقوق الملكية', paragraphs: [
-        'تحتفظ بحقوقك في الملفات والملاحظات التي تملكها أو تملك إذناً باستخدامها. أنت مسؤول عن قانونية المحتوى وعن امتلاك الحقوق والتراخيص اللازمة لإدخاله أو مشاركته أو معالجته.',
-        'تمنح مشغّل التطبيق ومزودي البنية التحتية ترخيصاً محدوداً وغير حصري لمعالجة المحتوى الذي تختار إرساله، وذلك بالقدر اللازم لتشغيل الميزة المطلوبة وتقديم الرد وحماية الخدمة. لا تمنح هذه الشروط ملكية محتواك للمشغّل.',
-        'لا ترفع مواداً تنتهك حقوق الغير أو الخصوصية أو السرية أو القانون، ولا تحاول تجاوز قيود الوصول أو تعطيل الخدمة أو فحصها بطريقة ضارة.'
+      { heading: { en: '3. Your content and intellectual property', ar: '٣. المحتوى والملكية الفكرية' }, paragraphs: [
+        { en: 'You retain rights to files and notes that you own or are authorized to use. You are responsible for having the rights and permissions needed to upload, share, or process your content.', ar: 'تحتفظ بحقوق الملفات والملاحظات التي تملكها أو يُسمح لك باستخدامها. وأنت مسؤول عن امتلاك الحقوق والأذونات اللازمة لرفع محتواك أو مشاركته أو معالجته.' },
+        { en: 'When you submit content for a feature, you authorize vexale and its infrastructure providers to process that content only as reasonably needed to operate the requested feature, generate a response, and protect the service. This does not transfer ownership of your content.', ar: 'عند إرسال محتوى لاستخدام ميزة ما، فإنك تسمح لـ vexale ومزودي البنية التحتية بمعالجته بالقدر المعقول اللازم لتشغيل الميزة المطلوبة وإنشاء الرد وحماية الخدمة. ولا ينقل ذلك ملكية محتواك.' },
+        { en: 'Do not submit content that violates another person’s rights, privacy, confidentiality, or applicable law. Do not bypass access controls or interfere with the service.', ar: 'لا ترسل محتوى ينتهك حقوق الآخرين أو خصوصيتهم أو سريتهم أو القانون النافذ. ولا تتجاوز ضوابط الوصول أو تتدخل في عمل الخدمة.' }
       ] },
-      { heading: '٤. مزايا الذكاء الاصطناعي والملفات', paragraphs: [
-        'عند طلب المساعدة، قد يرسل التطبيق السؤال والمقاطع المسترجعة من الملفات التي أضفتها إلى مزود ذكاء اصطناعي عبر الخادم. لا يُرسل الصوت إلا بعد اختيارك الصريح. بمبادرتك استخدام الميزة، تطلب تنفيذ هذه المعالجة وفق سياسة الخصوصية وشروط مزودي الخدمات.',
-        'المخرجات آلية وقد تكون خاطئة أو ناقصة أو غير ملائمة. تحقق منها قبل استخدامها، ولا تعتمد عليها وحدها في قرار طبي أو قانوني أو مالي أو أمني أو أكاديمي مهم، ولا تعتبرها بديلاً لمختص أو لمصدر موثوق.'
+      { heading: { en: '4. AI features and files', ar: '٤. ميزات الذكاء الاصطناعي والملفات' }, paragraphs: [
+        { en: 'When you request AI assistance, the app may send your prompt and relevant excerpts from your library to an AI provider through the server. Audio is sent only after you select it. By using the feature, you request that this processing take place under the Privacy Policy and provider terms.', ar: 'عند طلب المساعدة الذكية، قد يرسل التطبيق سؤالك ومقاطع ذات صلة من مكتبتك إلى مزود ذكاء اصطناعي عبر الخادم. ولا يُرسل الصوت إلا بعد أن تختاره. وباستخدامك الميزة، تطلب إجراء هذه المعالجة وفق سياسة الخصوصية وشروط المزود.' },
+        { en: 'AI output may be incorrect, incomplete, or unsuitable. Review it before relying on it. It is not professional medical, legal, financial, safety, or academic advice and is not a substitute for a qualified professional or trusted source.', ar: 'قد تكون مخرجات الذكاء الاصطناعي خاطئة أو ناقصة أو غير مناسبة. راجعها قبل الاعتماد عليها. وهي ليست استشارة مهنية طبية أو قانونية أو مالية أو متعلقة بالسلامة أو الدراسة، ولا تغني عن مختص مؤهل أو مصدر موثوق.' }
       ] },
-      { heading: '٥. حدود الاستخدام والتوافر', paragraphs: [
-        'قد تفرض الخدمة حدوداً للمعدل أو الاستخدام اليومي أو الحجم أو نوع الملف لأسباب تشغيلية وأمنية. الحد المهيأ حالياً لمساعد الذكاء الاصطناعي هو ٢٠ طلباً للحساب في اليوم، ويتجدد عند منتصف الليل UTC بعد تفعيل الترحيل والوظيفة في Supabase؛ وقد يتعذر تطبيقه قبل نشر إعدادات الخادم.',
-        'تُقدَّم المزايا بحسب التهيئة والاتصال وتوفر خدمات الأطراف الخارجية. يجوز تعديلها أو تعليقها أو إيقافها للصيانة أو لأسباب أمنية أو قانونية، مع بذل جهد معقول لإشعار المستخدمين عند الاقتضاء.'
+      { heading: { en: '5. Usage limits and availability', ar: '٥. حدود الاستخدام والتوافر' }, paragraphs: [
+        { en: 'The service may apply rate, daily-use, file-size, or file-type limits for operational and security reasons. Where server-side daily AI controls are enabled, the currently configured limit is 20 requests per account per UTC day. Limits and availability may change.', ar: 'قد تفرض الخدمة حدوداً للمعدل أو الاستخدام اليومي أو حجم الملفات أو أنواعها لأسباب تشغيلية وأمنية. وعند تفعيل ضوابط الاستخدام اليومية على الخادم، يكون الحد المهيأ حالياً ٢٠ طلباً للحساب في اليوم وفق توقيت UTC. وقد تتغير الحدود ومدى التوافر.' },
+        { en: 'Features depend on configuration, connectivity, and third-party availability. vexale may modify, suspend, or discontinue features for maintenance, security, or legal reasons, with reasonable notice where practicable.', ar: 'تعتمد الميزات على الإعداد والاتصال وتوافر خدمات الأطراف الثالثة. ويجوز لـ vexale تعديل الميزات أو تعليقها أو إيقافها لأسباب الصيانة أو الأمان أو القانون، مع إشعار معقول متى كان ذلك عملياً.' }
       ] },
-      { heading: '٦. خدمات الأطراف الثالثة', paragraphs: [
-        'قد يعتمد التطبيق على Google وSupabase ومزودين آخرين. يخضع استخدامك لخدماتهم لشروطهم وسياساتهم، ولا يتحكم مشغّل التطبيق في انقطاعاتهم أو ممارساتهم. لا تدخل بيانات دخولك الخارجية إلا في تدفق المصادقة الرسمي.'
+      { heading: { en: '6. Third-party services', ar: '٦. خدمات الأطراف الثالثة' }, paragraphs: [
+        { en: 'The app may rely on Google, Supabase, and other providers. Your use of their services is subject to their terms and policies. vexale does not control third-party availability or practices. Enter external credentials only through the provider’s official sign-in flow.', ar: 'قد يعتمد التطبيق على Google وSupabase ومزودين آخرين. ويخضع استخدامك لخدماتهم لشروطهم وسياساتهم. لا تتحكم vexale في توافر الأطراف الثالثة أو ممارساتها. أدخل بيانات الاعتماد الخارجية عبر تدفق تسجيل الدخول الرسمي للمزود فقط.' }
       ] },
-      { heading: '٧. الإيقاف والإنهاء', paragraphs: [
-        'يمكنك التوقف عن استخدام التطبيق أو حذف محتواك المحلي. يجوز لمشغّل التطبيق تعليق الوصول عند إساءة الاستخدام أو الخطر الأمني أو مخالفة هذه الشروط أو متطلب قانوني. يظل حذف البيانات السحابية خاضعاً لآليات الحساب والاحتفاظ الموضحة في سياسة الخصوصية.'
+      { heading: { en: '7. Acceptable use and termination', ar: '٧. الاستخدام المقبول وإنهاء الخدمة' }, paragraphs: [
+        { en: 'Do not misuse the service, attempt unauthorized access, disrupt its operation, or use it to violate law or another person’s rights. You may stop using vexale and remove local content at any time.', ar: 'لا تسيء استخدام الخدمة، ولا تحاول الوصول غير المصرح به أو تعطيلها، ولا تستخدمها لانتهاك القانون أو حقوق الآخرين. يمكنك التوقف عن استخدام vexale وحذف المحتوى المحلي في أي وقت.' },
+        { en: 'The service may restrict access where reasonably necessary to address abuse, a security risk, a legal requirement, or a material breach of these terms. Cloud-data deletion remains subject to account and retention procedures described in the Privacy Policy.', ar: 'يجوز للخدمة تقييد الوصول عند الحاجة المعقولة لمعالجة إساءة الاستخدام أو خطر أمني أو متطلب قانوني أو مخالفة جوهرية لهذه الشروط. ويظل حذف البيانات السحابية خاضعاً لإجراءات الحساب والاحتفاظ الموضحة في سياسة الخصوصية.' }
       ] },
-      { heading: '٨. الضمان والمسؤولية', paragraphs: [
-        'يُقدَّم التطبيق بالقدر الذي يسمح به القانون «كما هو» و«حسب التوفر». لا يضمن المشغّل خلوه من الأعطال أو فقدان البيانات أو دقة المخرجات أو ملاءمتها لغرض معين، مع عدم استبعاد أي ضمان أو حق لا يسمح القانون باستبعاده.',
-        'إلى أقصى حد يسمح به القانون، لا يتحمل المشغّل مسؤولية الأضرار غير المباشرة أو فقدان البيانات الناتج عن عدم الاحتفاظ بنسخة احتياطية أو اعتمادك على مخرجات آلية. لا تحد هذه الشروط مسؤولية لا يجوز قانوناً تقييدها.'
+      { heading: { en: '8. Disclaimers and liability', ar: '٨. إخلاء المسؤولية وحدودها' }, paragraphs: [
+        { en: 'To the extent permitted by law, vexale is provided “as is” and “as available.” The team does not warrant uninterrupted service, error-free operation, data recovery, or the accuracy or suitability of AI output. Nothing here excludes a right or warranty that applicable law does not allow to be excluded.', ar: 'بالقدر الذي يسمح به القانون، تُقدَّم vexale «كما هي» و«حسب التوافر». ولا يضمن الفريق استمرارية الخدمة أو خلوها من الأخطاء أو استعادة البيانات أو دقة مخرجات الذكاء الاصطناعي أو ملاءمتها. ولا يستبعد هذا النص حقاً أو ضماناً لا يسمح القانون النافذ باستبعاده.' },
+        { en: 'To the maximum extent permitted by law, the team is not liable for indirect loss, loss of data caused by failure to keep backups, or decisions made solely on AI output. This limitation does not apply where the law prohibits it.', ar: 'إلى أقصى حد يسمح به القانون، لا يتحمل الفريق مسؤولية الخسائر غير المباشرة أو فقدان البيانات بسبب عدم الاحتفاظ بنسخ احتياطية أو القرارات المتخذة اعتماداً حصرياً على مخرجات الذكاء الاصطناعي. ولا يسري هذا القيد حيث يحظره القانون.' }
       ] },
-      { heading: '٩. التغييرات والقانون والتواصل', paragraphs: [
-        'قد تتغير هذه الشروط عند تطوير الخدمة أو تغير المتطلبات النظامية. يبدأ سريان التحديث عند نشره، وتُبلَّغ التغييرات الجوهرية بالطريقة المناسبة. استمرارك في استخدام التطبيق بعد سريان التغيير يعني قبولك به بالقدر الذي يجيزه القانون؛ وإلا فتوقف عن الاستخدام.',
-        'يخضع هذا الاتفاق لقوانين [الدولة أو الولاية القضائية]، وتُنظر النزاعات أمام الجهات المختصة فيها، مع مراعاة القواعد الآمرة وحقوق المستهلك التي لا يجوز التنازل عنها.',
-        'آخر تحديث: ' + LAST_UPDATED + '. مشغّل التطبيق: [اسم الجهة]. للاستفسارات والشكاوى: [البريد الإلكتروني أو وسيلة التواصل].'
-      ] },
-    ],
-  },
+      { heading: { en: '9. Governing law and contact', ar: '٩. القانون الحاكم والتواصل' }, paragraphs: [
+        { en: 'These terms are governed by the laws of Iraq. Subject to mandatory consumer protections and other non-waivable rights, disputes are subject to the competent courts in Iraq.', ar: 'تخضع هذه الشروط لقوانين العراق. ومع مراعاة حقوق المستهلك الإلزامية والحقوق الأخرى التي لا يجوز التنازل عنها، تختص المحاكم المختصة في العراق بالنزاعات.' },
+        { en: 'For questions about these terms, contact vexale Development Team at vexale.support@gmail.com. vexale is the project name; the responsible entity is the vexale Development Team in Iraq.', ar: 'للاستفسارات بشأن هذه الشروط، تواصل مع فريق تطوير vexale عبر vexale.support@gmail.com. vexale هو اسم المشروع، والجهة المسؤولة هي فريق تطوير vexale في العراق.' }
+      ] }
+    ]
+  }
+}
+
+function localized(locale: Locale, value: LocalizedText): string {
+  return value[locale]
 }
 
 export default function LegalModal({ document: activeDocument, onSelect, onClose }: Props) {
+  const locale = useLocale()
+  const direction = locale === 'ar' ? 'rtl' : 'ltr'
   const dialogRef = useRef<HTMLElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
   const contentForDocument = activeDocument ? content[activeDocument] : null
@@ -150,7 +164,7 @@ export default function LegalModal({ document: activeDocument, onSelect, onClose
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" aria-hidden="true" />
           <motion.section
             ref={dialogRef}
-            role="dialog" aria-modal="true" aria-labelledby="legal-title" dir="rtl"
+            role="dialog" aria-modal="true" aria-labelledby="legal-title" dir={direction} lang={locale}
             className="glass-strong relative flex max-h-[min(88dvh,52rem)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-white/10 shadow-2xl"
             initial={{ opacity: 0, y: 12, scale: 0.985 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 8 }}
             onMouseDown={event => event.stopPropagation()}
@@ -158,37 +172,37 @@ export default function LegalModal({ document: activeDocument, onSelect, onClose
             <header className="shrink-0 border-b border-white/10 p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[11px] opacity-60">آخر تحديث: {LAST_UPDATED}</p>
-                  <h2 id="legal-title" className="mt-1 text-lg font-semibold text-violet-200">{contentForDocument.title}</h2>
+                  <p className="text-[11px] opacity-60">{locale === 'ar' ? 'آخر تحديث: ' : 'Last updated: '}{LAST_UPDATED[locale]}</p>
+                  <h2 id="legal-title" className="mt-1 text-lg font-semibold text-violet-200">{localized(locale, contentForDocument.title)}</h2>
                 </div>
-                <button ref={closeRef} type="button" aria-label="إغلاق النافذة القانونية" onClick={onClose} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-300"><X size={19} /></button>
+                <button ref={closeRef} type="button" aria-label={locale === 'ar' ? 'إغلاق النافذة القانونية' : 'Close legal dialog'} onClick={onClose} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-300"><X size={19} /></button>
               </div>
-              <nav aria-label="اختيار الوثيقة القانونية" className="mt-3 flex flex-wrap gap-2">
-                <button type="button" aria-current={activeDocument === 'privacy' ? 'page' : undefined} onClick={() => onSelect('privacy')} className={`rounded-lg px-3 py-2 text-xs transition ${activeDocument === 'privacy' ? 'bg-violet-300 text-slate-950' : 'bg-white/10 hover:bg-white/15'}`}>سياسة الخصوصية</button>
-                <button type="button" aria-current={activeDocument === 'terms' ? 'page' : undefined} onClick={() => onSelect('terms')} className={`rounded-lg px-3 py-2 text-xs transition ${activeDocument === 'terms' ? 'bg-violet-300 text-slate-950' : 'bg-white/10 hover:bg-white/15'}`}>شروط الاستخدام</button>
+              <nav aria-label={locale === 'ar' ? 'اختيار الوثيقة القانونية' : 'Choose a legal document'} className="mt-3 flex flex-wrap gap-2">
+                <button type="button" aria-current={activeDocument === 'privacy' ? 'page' : undefined} onClick={() => onSelect('privacy')} className={`rounded-lg px-3 py-2 text-xs transition ${activeDocument === 'privacy' ? 'bg-violet-300 text-slate-950' : 'bg-white/10 hover:bg-white/15'}`}>{locale === 'ar' ? 'سياسة الخصوصية' : 'Privacy Policy'}</button>
+                <button type="button" aria-current={activeDocument === 'terms' ? 'page' : undefined} onClick={() => onSelect('terms')} className={`rounded-lg px-3 py-2 text-xs transition ${activeDocument === 'terms' ? 'bg-violet-300 text-slate-950' : 'bg-white/10 hover:bg-white/15'}`}>{locale === 'ar' ? 'شروط الخدمة' : 'Terms of Service'}</button>
               </nav>
             </header>
             <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-6">
-              <p className="mb-5 rounded-xl border border-white/10 bg-white/[0.035] p-3 text-sm leading-7 text-white/80">{contentForDocument.summary}</p>
-              <nav aria-label="فهرس الوثيقة" className="mb-6 rounded-xl border border-white/10 bg-black/10 p-3">
-                <h3 className="mb-2 text-xs font-semibold text-violet-200">فهرس الوثيقة</h3>
+              <p className="mb-5 rounded-xl border border-white/10 bg-white/[0.035] p-3 text-sm leading-7 text-white/80">{localized(locale, contentForDocument.summary)}</p>
+              <nav aria-label={locale === 'ar' ? 'فهرس الوثيقة' : 'Document contents'} className="mb-6 rounded-xl border border-white/10 bg-black/10 p-3">
+                <h3 className="mb-2 text-xs font-semibold text-violet-200">{locale === 'ar' ? 'فهرس الوثيقة' : 'Contents'}</h3>
                 <ol className="grid gap-1.5 sm:grid-cols-2">
                   {contentForDocument.sections.map((section, index) => (
-                    <li key={section.heading}>
-                      <a href={`#legal-section-${index}`} className="text-xs leading-6 text-white/70 underline decoration-white/20 underline-offset-4 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-300">{section.heading}</a>
+                    <li key={index}>
+                      <a href={`#legal-section-${index}`} className="text-xs leading-6 text-white/70 underline decoration-white/20 underline-offset-4 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-violet-300">{localized(locale, section.heading)}</a>
                     </li>
                   ))}
                 </ol>
               </nav>
               <div className="space-y-6 text-sm leading-7 text-white/80">
                 {contentForDocument.sections.map((section, index) => (
-                  <section key={section.heading} id={`legal-section-${index}`} className="scroll-mt-4 space-y-2">
-                    <h3 className="border-b border-white/10 pb-2 text-sm font-semibold text-white">{section.heading}</h3>
-                    {section.paragraphs.map((paragraph, paragraphIndex) => <p key={paragraphIndex}>{paragraph}</p>)}
+                  <section key={index} id={`legal-section-${index}`} className="scroll-mt-4 space-y-2">
+                    <h3 className="border-b border-white/10 pb-2 text-sm font-semibold text-white">{localized(locale, section.heading)}</h3>
+                    {section.paragraphs.map((paragraph, paragraphIndex) => <p key={paragraphIndex}>{localized(locale, paragraph)}</p>)}
                   </section>
                 ))}
               </div>
-              <p className="mt-7 rounded-xl border border-amber-200/15 bg-amber-100/[0.04] p-3 text-xs leading-6 text-amber-100/85">نص عربي شامل للإعداد الأولي، وليس استشارة قانونية. استبدل جميع الحقول بين معقوفين ببيانات الجهة والولاية القضائية، واطلب مراجعة قانونية محلية قبل النشر العام.</p>
+              <p className="mt-7 rounded-xl border border-amber-200/15 bg-amber-100/[0.04] p-3 text-xs leading-6 text-amber-100/85">{locale === 'ar' ? 'هذه الوثيقة معلومات عامة وليست استشارة قانونية. صيغت للجهة المسؤولة والمشروع المذكورين، وينبغي طلب مراجعة قانونية محلية قبل الاعتماد عليها.' : 'This document is general information, not legal advice. It is written for the responsible entity and project named above; obtain local legal review before relying on it.'}</p>
             </div>
           </motion.section>
         </motion.div>

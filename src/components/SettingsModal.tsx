@@ -24,7 +24,7 @@ const TABS: readonly { id: TabId; label: { en: string; ar: string }; Icon: typeo
   { id: 'tools', label: { en: 'Tools', ar: 'الأدوات' }, Icon: Wrench },
   { id: 'trash', label: { en: 'Trash', ar: 'المحذوفات' }, Icon: Trash2 },
   { id: 'ai', label: { en: 'AI style', ar: 'أسلوب AI' }, Icon: Bot },
-  { id: 'legal', label: { en: 'الخصوصية والشروط', ar: 'الخصوصية والشروط' }, Icon: ShieldCheck },
+  { id: 'legal', label: { en: 'Privacy & Terms', ar: 'الخصوصية والشروط' }, Icon: ShieldCheck },
   { id: 'support', label: { en: 'Support', ar: 'الدعم' }, Icon: Sparkles },
 ]
 
@@ -454,24 +454,24 @@ export default function SettingsModal({ open, onClose, onRequestAuth }: Props) {
               )}
 
               {tab === 'legal' && (
-                <section dir="rtl" className="space-y-4">
+                <section dir={locale === 'ar' ? 'rtl' : 'ltr'} className="space-y-4">
                   <div>
-                    <h3 className="text-sm font-semibold">الخصوصية والشروط القانونية</h3>
-                    <p className="mt-1 text-xs leading-6 opacity-65">راجع كيفية معالجة الملفات والحسابات وخدمات الذكاء الاصطناعي، والشروط المنظمة لاستخدام المكتبة.</p>
+                    <h3 className="text-sm font-semibold">{text('Privacy and legal terms', 'الخصوصية والشروط القانونية')}</h3>
+                    <p className="mt-1 text-xs leading-6 opacity-65">{text('Learn how vexale handles files, accounts, and AI features, and review the terms governing your use of the library.', 'راجع كيفية تعامل vexale مع الملفات والحسابات وميزات الذكاء الاصطناعي، والشروط المنظمة لاستخدام المكتبة.')}</p>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <article className="space-y-3 rounded-xl border border-white/10 bg-white/[0.035] p-4">
-                      <div className="flex items-center gap-2 text-violet-200"><ShieldCheck size={17} /><h4 className="text-sm font-semibold">سياسة الخصوصية</h4></div>
-                      <p className="text-xs leading-6 opacity-70">تفاصيل البيانات المحلية والسحابية، ومعالجة الملفات والذكاء الاصطناعي، والاحتفاظ والحقوق.</p>
-                      <button type="button" className={`${chip} w-full`} onClick={() => setLegalDocument('privacy')}>قراءة سياسة الخصوصية</button>
+                      <div className="flex items-center gap-2 text-violet-200"><ShieldCheck size={17} /><h4 className="text-sm font-semibold">{text('Privacy Policy', 'سياسة الخصوصية')}</h4></div>
+                      <p className="text-xs leading-6 opacity-70">{text('Details about local and cloud data, file and AI processing, retention, and your choices.', 'تفاصيل البيانات المحلية والسحابية ومعالجة الملفات والذكاء الاصطناعي والاحتفاظ والخيارات المتاحة لك.')}</p>
+                      <button type="button" className={`${chip} w-full`} onClick={() => setLegalDocument('privacy')}>{text('Read Privacy Policy', 'قراءة سياسة الخصوصية')}</button>
                     </article>
                     <article className="space-y-3 rounded-xl border border-white/10 bg-white/[0.035] p-4">
-                      <div className="flex items-center gap-2 text-violet-200"><ShieldCheck size={17} /><h4 className="text-sm font-semibold">شروط الاستخدام</h4></div>
-                      <p className="text-xs leading-6 opacity-70">تفاصيل الحساب والمحتوى والاستخدام المقبول وحدود الذكاء الاصطناعي والمسؤوليات.</p>
-                      <button type="button" className={`${chip} w-full`} onClick={() => setLegalDocument('terms')}>قراءة شروط الاستخدام</button>
+                      <div className="flex items-center gap-2 text-violet-200"><ShieldCheck size={17} /><h4 className="text-sm font-semibold">{text('Terms of Service', 'شروط الخدمة')}</h4></div>
+                      <p className="text-xs leading-6 opacity-70">{text('Details about accounts, content, acceptable use, AI limits, and responsibilities.', 'تفاصيل الحسابات والمحتوى والاستخدام المقبول وحدود الذكاء الاصطناعي والمسؤوليات.')}</p>
+                      <button type="button" className={`${chip} w-full`} onClick={() => setLegalDocument('terms')}>{text('Read Terms of Service', 'قراءة شروط الخدمة')}</button>
                     </article>
                   </div>
-                  <p className="rounded-xl border border-amber-200/15 bg-amber-100/[0.04] p-3 text-xs leading-6 text-amber-100/80">تتضمن الوثيقتان حقولاً بين معقوفين يجب استكمالها ببيانات الجهة والولاية القضائية قبل نشر التطبيق للجمهور.</p>
+                  <p className="rounded-xl border border-amber-200/15 bg-amber-100/[0.04] p-3 text-xs leading-6 text-amber-100/80">{text('These documents identify vexale Development Team in Iraq and vexale.support@gmail.com as the responsible entity and contact.', 'تحدد الوثيقتان فريق تطوير vexale في العراق وبريد vexale.support@gmail.com بوصفهما الجهة المسؤولة ووسيلة التواصل.')}</p>
                 </section>
               )}
 
@@ -479,10 +479,10 @@ export default function SettingsModal({ open, onClose, onRequestAuth }: Props) {
                 <div className="space-y-4">
                   <SupportHub onRequestAuth={onRequestAuth} />
                   <section className="space-y-2 border-t border-white/10 pt-4">
-                    <h3 className="text-sm font-semibold">المعلومات القانونية</h3>
+                    <h3 className="text-sm font-semibold">{text('Legal information', 'المعلومات القانونية')}</h3>
                     <div className="flex flex-wrap gap-2">
-                      <button type="button" className={chip} onClick={() => setLegalDocument('privacy')}>سياسة الخصوصية</button>
-                      <button type="button" className={chip} onClick={() => setLegalDocument('terms')}>شروط الاستخدام</button>
+                      <button type="button" className={chip} onClick={() => setLegalDocument('privacy')}>{text('Privacy Policy', 'سياسة الخصوصية')}</button>
+                      <button type="button" className={chip} onClick={() => setLegalDocument('terms')}>{text('Terms of Service', 'شروط الخدمة')}</button>
                     </div>
                   </section>
                 </div>

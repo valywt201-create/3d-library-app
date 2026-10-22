@@ -7,11 +7,11 @@ const STORAGE_KEY = 'atelier-locale-v1'
 const listeners = new Set<() => void>()
 
 function readLocale(): Locale {
-  if (typeof window === 'undefined') return 'ar'
+  if (typeof window === 'undefined') return 'en'
   try {
-    return window.localStorage.getItem(STORAGE_KEY) === 'en' ? 'en' : 'ar'
+    return window.localStorage.getItem(STORAGE_KEY) === 'ar' ? 'ar' : 'en'
   } catch {
-    return 'ar'
+    return 'en'
   }
 }
 
@@ -42,7 +42,7 @@ function subscribe(listener: () => void): () => void {
 const getSnapshot = (): Locale => locale
 
 export function useLocale(): Locale {
-  return useSyncExternalStore(subscribe, getSnapshot, () => 'ar')
+  return useSyncExternalStore(subscribe, getSnapshot, () => 'en')
 }
 
 export function setLocale(next: Locale): void {
