@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { LogOut, ShieldCheck, X } from 'lucide-react'
-import { isGoogleConfigured, renderGoogleButton, signOutGoogle, useGoogleAuth } from '../lib/googleAuth'
+import { LogOut, X } from 'lucide-react'
+import { getGoogleIdToken, isGoogleConfigured, renderGoogleButton, signOutGoogle, useGoogleAuth } from '../lib/googleAuth'
+import { tr, useLocale } from '../lib/i18n'
 import { sfx } from '../shared'
 
 interface Props {
@@ -9,150 +10,127 @@ interface Props {
   onClose: () => void
 }
 
+function localizeAuthError(error: string, locale: 'en' | 'ar'): string {
+  void error
+  return locale === 'en' ? 'Sign-in could not finish. Please try again.' : 'لم يكتمل تسجيل الدخول. حاول مرة أخرى.'
+}
+
 export default function AuthModal({ open, onClose }: Props) {
+  const locale = useLocale()
   const { user } = useGoogleAuth()
-  const btnRef = useRef<HTMLDivElement>(null)
-  const closeRef = useRef(onClose) // نحتفظ بأحدث onClose دون إعادة رسم زر Google كل مرة
-  useEffect(() => { closeRef.current = onClose }, [onClose])
+  const activeUser = user && getGoogleIdToken() ? user : null
+  const buttonRef = useRef<HTMLDivElement>(null)
+  const closeRef = useRef(onClose)
   const [error, setError] = useState('')
   const [ready, setReady] = useState(false)
   const [brokenPicture, setBrokenPicture] = useState<string | null>(null)
+  const text = (english: string, arabic: string): string => tr(locale, english, arabic)
 
-  const close = (): void => { sfx.close(); onClose() }
+  useEffect(() => { closeRef.current = onClose }, [onClose])
 
-  // رسم زر Google عند فتح النافذة (للزائر فقط)
   useEffect(() => {
-    if (!open || user || !isGoogleConfigured || !btnRef.current) return undefined
+    if (!open || activeUser || !isGoogleConfigured || !buttonRef.current) return undefined
     let cancelled = false
     setError('')
     setReady(false)
-    renderGoogleButton(btnRef.current, 300, r => {
+    renderGoogleButton(buttonRef.current, 300, result => {
       if (cancelled) return
-      if (r.error) { setError(r.error); return }
+      if (result.error) {
+        setError(localizeAuthError(result.error, locale))
+        return
+      }
       sfx.success()
       closeRef.current()
-    })
+    }, locale)
       .then(() => { if (!cancelled) setReady(true) })
-      .catch((e: unknown) => { if (!cancelled) setError(e instanceof Error ? e.message : 'حدث خطأ غير متوقع') })
+      .catch((reason: unknown) => {
+        if (!cancelled) setError(localizeAuthError(reason instanceof Error ? reason.message : 'Unexpected sign-in error.', locale))
+      })
     return () => { cancelled = true }
-  }, [open, user])
+  }, [activeUser, locale, open])
 
-  // الإغلاق بمفتاح Esc
   useEffect(() => {
     if (!open) return undefined
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') { sfx.close(); closeRef.current() }
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') { sfx.close(); closeRef.current() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [open])
+
+  const close = (): void => { sfx.close(); onClose() }
 
   return (
     <AnimatePresence>
       {open && (
         <motion.div
           key="auth-modal"
-          className="fixed inset-0 flex items-center justify-center p-4"
-          style={{ zIndex: 2000 }} // فوق كل النوافذ العائمة
+          className="fixed inset-0 z-[2000] flex items-center justify-center p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          onMouseDown={event => { if (event.target === event.currentTarget) close() }}
         >
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={close} />
-
+          <div className="absolute inset-0 bg-black/55 backdrop-blur-sm" aria-hidden="true" />
           <motion.div
             role="dialog"
             aria-modal="true"
-            aria-label="تسجيل الدخول"
-            dir="rtl"
-            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+            aria-label={text('Account', 'الحساب')}
+            className="glass-strong relative w-full max-w-sm overflow-hidden rounded-2xl border border-white/10 shadow-2xl"
+            initial={{ opacity: 0, y: 14, scale: 0.985 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.2 }}
-            className="glass-strong relative w-full max-w-sm overflow-hidden rounded-2xl"
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ duration: 0.18 }}
+            onMouseDown={event => event.stopPropagation()}
           >
-            {/* وهج علوي بلون التوهّج الحالي */}
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-x-0 top-0 h-24 opacity-30"
-              style={{ background: 'radial-gradient(ellipse at top, var(--accent), transparent 70%)' }}
-            />
-
+            <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-24 opacity-25" style={{ background: 'radial-gradient(ellipse at top, var(--accent), transparent 70%)' }} />
             <div className="relative space-y-4 p-5">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold" style={{ color: 'var(--accent)' }}>
-                  {user ? 'حسابك' : 'تسجيل الدخول'}
-                </h2>
-                <button aria-label="إغلاق" onClick={close}><X size={18} /></button>
+                <h2 className="text-lg font-semibold" style={{ color: 'var(--accent)' }}>{activeUser ? text('Your account', 'حسابك') : user ? text('Reconnect your account', 'أعد ربط حسابك') : text('Sign in', 'تسجيل الدخول')}</h2>
+                <button type="button" aria-label={text('Close', 'إغلاق')} onClick={close} className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-white/10"><X size={18} /></button>
               </div>
 
-              {user ? (
-                /* ===== مستخدم مسجّل ===== */
+              {activeUser ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3">
-                    {user.picture && user.picture !== brokenPicture ? (
-                      <img
-                        src={user.picture}
-                        alt=""
-                        referrerPolicy="no-referrer"
-                        onError={() => setBrokenPicture(user.picture)}
-                        className="h-12 w-12 shrink-0 rounded-full object-cover"
-                        style={{ boxShadow: '0 0 0 2px var(--accent)' }}
-                      />
+                    {activeUser.picture && activeUser.picture !== brokenPicture ? (
+                      <img src={activeUser.picture} alt="" referrerPolicy="no-referrer" onError={() => setBrokenPicture(activeUser.picture)} className="h-12 w-12 shrink-0 rounded-full object-cover" style={{ boxShadow: '0 0 0 2px var(--accent)' }} />
                     ) : (
-                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-bold text-black" style={{ background: 'var(--accent)' }}>
-                        {(user.name[0] ?? '?').toUpperCase()}
-                      </span>
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg font-bold text-black" style={{ background: 'var(--accent)' }}>{(activeUser.name[0] ?? '?').toUpperCase()}</span>
                     )}
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{user.name}</p>
-                      <p className="truncate text-xs opacity-70" dir="ltr">{user.email}</p>
+                      <p className="truncate text-sm font-semibold">{activeUser.name}</p>
+                      <p className="truncate text-xs opacity-70" dir="ltr">{activeUser.email}</p>
                     </div>
                   </div>
-
                   <button
+                    type="button"
                     onClick={() => { signOutGoogle(); sfx.close(); onClose() }}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-sm transition hover:bg-white/20 active:scale-95"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2.5 text-sm transition hover:bg-white/20 active:scale-[0.99]"
                   >
-                    <LogOut size={14} />تسجيل الخروج
+                    <LogOut size={14} />{text('Sign out', 'تسجيل الخروج')}
                   </button>
                 </div>
               ) : !isGoogleConfigured ? (
-                /* ===== المعرّف غير مضبوط: خطوات الإعداد ===== */
                 <div className="space-y-2 text-sm">
-                  <p>تسجيل الدخول بحساب Google غير مفعّل بعد أو أن معرّف OAuth غير صالح، والتطبيق يعمل كزائر.</p>
-                  <ol className="list-decimal space-y-1 pr-5 text-xs opacity-80">
-                    <li>أنشئ OAuth client ID من نوع Web في Google Cloud Console.</li>
-                    <li>أضف <span dir="ltr">http://localhost:5173</span> إلى Authorized JavaScript origins.</li>
-                    <li>ضع المعرّف في ملف <span dir="ltr">.env</span> باسم <span dir="ltr">VITE_GOOGLE_CLIENT_ID</span>.</li>
-                    <li>أعد تشغيل خادم التطوير.</li>
+                  <p className="text-white/80">{text('Google sign-in is not configured yet. You can continue using the library as a guest.', 'تسجيل الدخول بحساب Google غير مفعّل بعد. يمكنك متابعة استخدام المكتبة كزائر.')}</p>
+                  <ol className="list-decimal space-y-1.5 ps-5 text-xs leading-5 opacity-75">
+                    <li>{text('Create a Web application OAuth client in Google Cloud Console.', 'أنشئ OAuth Client من نوع Web في Google Cloud Console.')}</li>
+                    <li>{text('Add http://localhost:5173 to Authorized JavaScript origins.', 'أضف http://localhost:5173 إلى Authorized JavaScript origins.')}</li>
+                    <li>{text('Set VITE_GOOGLE_CLIENT_ID in the project-root .env file.', 'ضع VITE_GOOGLE_CLIENT_ID في ملف .env بجذر المشروع.')}</li>
+                    <li>{text('Restart Vite after saving the environment file.', 'أعد تشغيل Vite بعد حفظ ملف البيئة.')}</li>
                   </ol>
                 </div>
               ) : (
-                /* ===== زر Google ===== */
                 <div className="space-y-4">
-                  <p className="text-sm opacity-80">سجّل الدخول بحسابك في Google لتخصيص مكتبتك.</p>
-                  <div className="flex min-h-11 items-center justify-center">
-                    <div ref={btnRef} />
-                    {!ready && !error && <span className="absolute text-xs opacity-60">جارٍ تحميل زر Google…</span>}
+                  <p className="text-sm opacity-75">{user
+                    ? text('Reconnect with Google to continue using your account across cloud features.', 'أعد الاتصال بحساب Google لمتابعة استخدام الميزات السحابية.')
+                    : text('Sign in to create a shared workspace or send a support message.', 'سجّل الدخول لإنشاء مساحة مشتركة أو إرسال رسالة دعم.')}</p>
+                  <div className="relative flex min-h-11 items-center justify-center">
+                    <div ref={buttonRef} />
+                    {!ready && !error && <span className="absolute text-xs opacity-55">{text('Loading Google sign-in…', 'جارٍ تحميل تسجيل الدخول بحساب Google…')}</span>}
                   </div>
-                  {error && (
-                    <p role="alert" className="rounded-xl border border-red-300/20 bg-red-400/10 p-3 text-sm text-red-200">{error}</p>
-                  )}
-                  <details className="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/80">
-                    <summary className="cursor-pointer font-semibold">إذا ظهر الخطأ invalid_client، اعرض خطوات الحل</summary>
-                    <ol className="mt-2 list-decimal space-y-1 pr-5">
-                      <li>تحقق من أن المعرّف مأخوذ من مشروع Google Cloud الصحيح ومن عميل OAuth من نوع تطبيق ويب، وليس من مفتاح API أو سرّ العميل.</li>
-                      <li>في بيانات اعتماد OAuth، أضف <span dir="ltr">http://localhost:5173</span> ضمن Authorized JavaScript origins دون مسار إضافي.</li>
-                      <li>تأكد من نسخ Client ID كاملاً كما هو إلى <span dir="ltr">VITE_GOOGLE_CLIENT_ID</span> داخل ملف <span dir="ltr">.env</span> الموجود بجذر المشروع.</li>
-                      <li>أوقف خادم Vite ثم شغّله مجدداً بعد تعديل <span dir="ltr">.env</span>، وبعدها حدّث الصفحة تحديثاً كاملاً.</li>
-                      <li>إذا استمر الخطأ، تحقق أن عميل OAuth لم يُحذف أو يُعطّل وأن عنوان الصفحة الحالي هو <span dir="ltr">http://localhost:5173</span>.</li>
-                    </ol>
-                  </details>
-                  <p className="flex items-start gap-2 text-[11px] opacity-60">
-                    <ShieldCheck size={14} className="mt-0.5 shrink-0" />
-                    يُحفظ اسمك وبريدك وصورتك في هذا المتصفح فقط، ولا يُحفظ أي رمز دخول.
-                  </p>
+                  {error && <p role="alert" className="rounded-xl border border-white/10 bg-white/[0.04] p-3 text-sm opacity-80">{error}</p>}
                 </div>
               )}
             </div>

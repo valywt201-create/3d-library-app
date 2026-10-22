@@ -1,13 +1,15 @@
 import { getGoogleIdToken } from './googleAuth'
+import type { Locale } from './i18n'
 import { supabase } from './supabase'
 
-export type StudyAction = 'summarize' | 'quiz' | 'answer'
+export type StudyAction = 'summarize' | 'quiz' | 'answer' | 'theme'
 
 export interface StudyAIRequest {
   action: StudyAction
   nodeTitle: string
   notes: string
   question?: string
+  language?: Locale
 }
 
 interface StudyAIResponse {
@@ -34,24 +36,22 @@ async function getServerErrorMessage(error: unknown): Promise<string | null> {
 
 export async function requestStudyAI(request: StudyAIRequest): Promise<string> {
   const googleIdToken = getGoogleIdToken()
-  if (!googleIdToken) {
-    throw new Error('جلسة Google الموثّقة غير متاحة في علامة التبويب الحالية. سجّل الخروج ثم ادخل مجدداً من زر الحساب.')
-  }
-
-  if (!supabase) {
-    throw new Error('اتصال Supabase غير مضبوط. أضف VITE_SUPABASE_URL ومفتاح VITE_SUPABASE_PUBLISHABLE_KEY أو VITE_SUPABASE_ANON_KEY إلى ملف البيئة ثم أعد تشغيل Vite.')
-  }
+  if (!googleIdToken) throw new Error('Sign in or reconnect your Google account to continue.')
+  if (!supabase) throw new Error('Study tools are getting ready. Please try again soon.')
 
   const notes = request.notes.trim()
   const question = request.question?.trim() ?? ''
-  if (notes.length > MAX_NOTE_CHARACTERS) {
-    throw new Error(`الملاحظات طويلة جداً لهذا الطلب؛ الحد الأقصى ${MAX_NOTE_CHARACTERS.toLocaleString('ar')} حرف.`)
+  if (request.action !== 'theme' && notes.length > MAX_NOTE_CHARACTERS) {
+    throw new Error('Choose a focused passage to work with.')
   }
-  if (request.action !== 'answer' && !notes) {
-    throw new Error('أضف ملاحظات إلى هذا القسم قبل تلخيصها أو إنشاء اختبار.')
+  if (request.action !== 'answer' && request.action !== 'theme' && !notes) {
+    throw new Error('Add some notes to this section to get started.')
   }
-  if (request.action === 'answer' && (!question || question.length > MAX_QUESTION_CHARACTERS)) {
-    throw new Error(`اكتب سؤالاً لا يتجاوز ${MAX_QUESTION_CHARACTERS.toLocaleString('ar')} حرف.`)
+  if (request.action === 'answer' && !question) {
+    throw new Error('What would you like to explore?')
+  }
+  if (request.action === 'answer' && question.length > MAX_QUESTION_CHARACTERS) {
+    throw new Error('Could you make your question a little more focused?')
   }
 
   const { data, error } = await supabase.functions.invoke<StudyAIResponse>('notes-ai', {
@@ -60,21 +60,18 @@ export async function requestStudyAI(request: StudyAIRequest): Promise<string> {
       nodeTitle: request.nodeTitle,
       notes,
       question,
+      language: request.language ?? 'en',
     },
-    headers: {
-      Authorization: `Bearer ${googleIdToken}`,
-    },
+    headers: { Authorization: `Bearer ${googleIdToken}` },
   })
 
   if (error) {
     const serverMessage = await getServerErrorMessage(error)
-    throw new Error(serverMessage ?? 'تعذّر الاتصال بمساعد الدراسة. تحقق من نشر وظيفة notes-ai وضبط أسرار Supabase، ثم حاول مجدداً.')
+    throw new Error(serverMessage ?? 'Something interrupted the request. Please try again.')
   }
-
   if (!data || typeof data.answer !== 'string' || !data.answer.trim()) {
     const message = typeof data?.error === 'string' ? data.error : ''
-    throw new Error(message || 'لم تصل إجابة صالحة من مساعد الدراسة.')
+    throw new Error(message || 'No response came through this time. Please try again.')
   }
-
   return data.answer.trim()
 }

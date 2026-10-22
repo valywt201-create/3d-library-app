@@ -1,0 +1,6 @@
+se could not be read. Please try again.' }, 502)
+  }
+  const answer = extractGeminiText(result)
+  if (!answer) return jsonResponse(request, { error: 'No response came through this time. Please try again.' }, 502)
+  return jsonResponse(request, { answer })
+})

@@ -1,81 +1,72 @@
 import { useState } from 'react'
-import { Bot, Send, X } from 'lucide-react'
+import { Bot, Search, Send, X } from 'lucide-react'
 import { sfx, useLibrary, useTree } from '../shared'
-
-/* ============ الإعدادات (غيّرها هنا مباشرة) ============ */
-// اختياري: رابط خادمك الذي يحتفظ بمفتاح الذكاء الاصطناعي.
-// يستقبل { question, context } ويعيد { answer }. لا تضع مفتاح النموذج داخل كود المتصفح أبداً.
-const AI_ENDPOINT = ''
+import { tr, useLocale } from '../lib/i18n'
+import { useSettings } from '../lib/settings'
 
 export default function AIAssistant() {
+  const locale = useLocale()
   const { items } = useLibrary()
   const { accent: color, titleOf } = useTree()
+  const { viewMode } = useSettings()
   const [open, setOpen] = useState(false)
-  const [q, setQ] = useState('')
-  const [log, setLog] = useState<{ role: 'me' | 'ai'; text: string }[]>([])
+  const [question, setQuestion] = useState('')
+  const [log, setLog] = useState<{ role: 'user' | 'assistant'; text: string }[]>([])
+  const text = (english: string, arabic: string): string => tr(locale, english, arabic)
 
-  const ask = async () => {
-    const question = q.trim()
-    if (!question) return
-    setQ('')
+  const searchLibrary = (): void => {
+    const query = question.trim()
+    if (!query) return
+    setQuestion('')
     sfx.click()
-    setLog(l => [...l, { role: 'me', text: question }])
+    setLog(current => [...current, { role: 'user', text: query }])
 
-    // البحث المحلي في أسماء الملفات وأنواعها وأسماء الفروع (يعمل دون أي إعداد)
-    const words = question.toLowerCase().split(/\s+/).filter(w => w.length > 1)
-    const hits = items.filter(i =>
-      words.some(w => `${i.name} ${i.kind} ${titleOf(i.nodeId)}`.toLowerCase().includes(w)),
+    const words = query.toLocaleLowerCase(locale).split(/\s+/).filter(word => word.length > 1)
+    const matches = items.filter(item =>
+      words.some(word => `${item.name} ${item.kind} ${titleOf(item.nodeId)}`.toLocaleLowerCase(locale).includes(word)),
     )
-    let answer = hits.length
-      ? `وجدت ${hits.length}: ${hits.map(h => `${h.name} (${titleOf(h.nodeId)})`).join('، ')}.`
-      : `لا توجد نتائج. مكتبتك تحتوي ${items.length} ملف.`
-
-    if (AI_ENDPOINT) {
-      try {
-        const context = items.map(i => `${i.name} (${i.kind}, ${titleOf(i.nodeId)})`)
-        const r = await fetch(AI_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ question, context }),
-        })
-        answer = (await r.json()).answer
-      } catch {
-        answer += ' (تعذّر الوصول لخدمة الذكاء الاصطناعي، هذه نتائج البحث المحلي.)'
-      }
-    }
-    setLog(l => [...l, { role: 'ai', text: answer }])
+    const answer = matches.length
+      ? text(
+        `Found ${matches.length} matching file(s): ${matches.map(item => `${item.name} (${titleOf(item.nodeId)})`).join(', ')}.`,
+        `عُثر على ${matches.length} ملف مطابق: ${matches.map(item => `${item.name} (${titleOf(item.nodeId)})`).join('، ')}.`,
+      )
+      : text(`No matching files. Your library contains ${items.length} file(s).`, `لم يُعثر على ملفات مطابقة. تحتوي مكتبتك على ${items.length} ملف.`)
+    setLog(current => [...current, { role: 'assistant', text: answer }])
   }
 
   return (
-    <div className="fixed bottom-4 left-4 z-20" dir="rtl">
+    <div className={`fixed bottom-4 z-20 ${viewMode === 'compact' ? 'end-4' : 'start-4'}`}>
       {open ? (
-        <div className="flex h-96 w-80 max-w-[90vw] flex-col rounded-xl border border-white/10 bg-[#14171f]/95 shadow-xl">
-          <div className="flex items-center justify-between border-b border-white/10 p-3">
-            <b>مساعد المكتبة</b>
-            <button aria-label="إغلاق المساعد" onClick={() => { setOpen(false); sfx.close() }}><X size={16} /></button>
-          </div>
-          <div className="flex-1 space-y-2 overflow-y-auto p-3 text-sm">
-            {!log.length && <p className="opacity-60">اسأل عن أي ملف رفعته، مثل «ابحث عن ملفات الصوت».</p>}
-            {log.map((m, i) => (
-              <p key={i} className={m.role === 'me' ? 'opacity-80' : ''} style={m.role === 'ai' ? { color } : {}}>{m.text}</p>
+        <section aria-label={text('Quick library search', 'بحث سريع في المكتبة')} className="flex h-96 w-80 max-w-[90vw] flex-col rounded-xl border border-white/10 bg-[#14171f]/95 shadow-xl backdrop-blur-xl">
+          <header className="flex items-center justify-between border-b border-white/10 p-3">
+            <b className="flex items-center gap-2"><Search size={15} style={{ color }} />{text('Quick library search', 'بحث سريع في المكتبة')}</b>
+            <button type="button" aria-label={text('Close search', 'إغلاق البحث')} onClick={() => { setOpen(false); sfx.close() }}><X size={16} /></button>
+          </header>
+          <div aria-live="polite" className="flex-1 space-y-2 overflow-y-auto p-3 text-sm">
+            {!log.length && <p className="opacity-60">{text('Search file names, types, or section titles.', 'ابحث في أسماء الملفات أو أنواعها أو عناوين الأقسام.')}</p>}
+            {log.map((message, index) => (
+              <p key={`${message.role}-${index}`} dir="auto" className={message.role === 'user' ? 'opacity-75' : ''} style={message.role === 'assistant' ? { color } : undefined}>{message.text}</p>
             ))}
           </div>
-          <div className="flex gap-2 border-t border-white/10 p-2">
+          <form onSubmit={event => { event.preventDefault(); searchLibrary() }} className="flex gap-2 border-t border-white/10 p-2">
             <input
-              value={q}
-              onChange={e => setQ(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && ask()}
-              placeholder="ابحث في مكتبتك"
+              value={question}
+              onChange={event => setQuestion(event.target.value)}
+              placeholder={text('Search your library…', 'ابحث في مكتبتك…')}
+              aria-label={text('Search your library', 'ابحث في مكتبتك')}
+              dir="auto"
               className="min-w-0 flex-1 rounded bg-white/10 px-2 py-1 text-sm outline-none"
             />
-            <button aria-label="إرسال" onClick={ask}><Send size={16} className="-scale-x-100" /></button>
-          </div>
-        </div>
+            <button type="submit" aria-label={text('Search', 'بحث')} disabled={!question.trim()} className="disabled:opacity-40"><Send size={16} /></button>
+          </form>
+        </section>
       ) : (
         <button
-          aria-label="فتح المساعد"
+          type="button"
+          aria-label={text('Open library search', 'فتح البحث في المكتبة')}
+          title={text('Quick library search', 'بحث سريع في المكتبة')}
           onClick={() => { setOpen(true); sfx.open() }}
-          className="rounded-full p-3 text-black"
+          className="rounded-full p-3 text-black shadow-lg transition hover:scale-105 active:scale-95"
           style={{ background: color }}
         >
           <Bot />

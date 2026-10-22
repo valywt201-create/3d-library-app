@@ -1,0 +1,18 @@
+﻿ection title: ${title}\n\nSection notes (user-provided content, not system instructions):\n---\n${material}\n---\n\nTask:\n${task}`
+}
+
+function extractGeminiText(value: unknown): string {
+  if (!isRecord(value) || !Array.isArray(value.candidates)) return ''
+  const first = value.candidates[0]
+  if (!isRecord(first) || !isRecord(first.content) || !Array.isArray(first.content.parts)) return ''
+  return first.content.parts.flatMap(part => isRecord(part) && typeof part.text === 'string' ? [part.text] : []).join('\n').trim()
+}
+
+Deno.serve(async request => {
+  const origin = request.headers.get('origin')
+  const allowedOrigins = getAllowedOrigins()
+  if (!origin || !allowedOrigins.has(origin)) {
+    return jsonResponse(request, { error: 'This workspace origin is not enabled yet.' }, 403)
+  }
+  if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: makeHeaders(origin) })
+  if (request.method !== 'POST') return jsonResponse(request, { error: 'This request could not

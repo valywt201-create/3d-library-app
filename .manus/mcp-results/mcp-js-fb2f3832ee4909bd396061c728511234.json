@@ -1,0 +1,7 @@
+In-app Browser JS state was preserved. Completed actions were not rolled back; refresh stale UI handles and continue only the remaining work.
+{"code":"STALE_PAGE","method":"browser_press_key","callIndex":4,"nextAction":"observe_again"}
+ERROR STALE_PAGE
+{"control":{"documentRevision":"rev_6aa8a92e-ae5f-4660-bb7d-67f16e4dbbd6","error":{"code":"STALE_PAGE","retryable":true},"requiresSnapshot":true,"status":"error","tabId":"tab_77138447-b6e6-40b0-8040-c47970caf6b2"},"kind":"error","schema":"manus.browser/v1"}
+{"method":"browser_snapshot","warnings":["1 older browser snapshot were evicted by the bounded snapshot registry."]}
+ERROR STALE_PAGE
+{"control":{"documentRevision":"rev_6aa8a92e-ae5f-4660-bb7d-67f16e4dbbd6","error":{"code":"STALE_PAGE","retryable":true},"requiresSnapshot":true,"status":"error","tabId":"tab_77138447-b6e6-40b0-8040-c47970caf6b2"},"kind":"error","schema":"manus.browser/v1"}

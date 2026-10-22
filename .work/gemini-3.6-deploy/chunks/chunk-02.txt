@@ -1,0 +1,29 @@
+﻿ap(value => {
+    try {
+      const url = new URL(value.trim())
+      return url.protocol === 'http:' || url.protocol === 'https:' ? [url.origin] : []
+    } catch {
+      return []
+    }
+  }))
+}
+
+function makeHeaders(origin: string | null): Headers {
+  const headers = new Headers({
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff',
+    Vary: 'Origin',
+  })
+  if (origin && getAllowedOrigins().has(origin)) {
+    headers.set('Access-Control-Allow-Origin', origin)
+    headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    headers.set('Access-Control-Allow-Headers', 'authorization, apikey, x-client-info, content-type')
+    headers.set('Access-Control-Max-Age', '600')
+  }
+  return headers
+}
+
+function jsonResponse(request: Request, body: Record<string, unknown>, status = 200, extraHeaders?: HeadersInit): Response {
+  const headers = makeHeaders(request.headers.get('origin'))
+  if (extraHeaders) new Headers

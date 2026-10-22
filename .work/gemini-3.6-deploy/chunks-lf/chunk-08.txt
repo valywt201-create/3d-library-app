@@ -1,0 +1,24 @@
+﻿ be completed.' }, 405, { Allow: 'POST, OPTIONS' })
+
+  const googleClientId = Deno.env.get('GOOGLE_CLIENT_ID')?.trim()
+  const geminiApiKey = Deno.env.get('GEMINI_API_KEY')?.trim()
+  if (!googleClientId || !geminiApiKey) {
+    return jsonResponse(request, { error: 'The study assistant is being prepared. Please try again soon.' }, 503)
+  }
+
+  const authorization = request.headers.get('authorization') ?? ''
+  const bearerMatch = authorization.match(/^Bearer\s+(.+)$/i)
+  const googleIdToken = bearerMatch?.[1]?.trim()
+  if (!googleIdToken || googleIdToken.length > 8_192) {
+    return jsonResponse(request, { error: 'Sign in with Google to use the study assistant.' }, 401)
+  }
+
+  let googleSubject: string
+  try {
+    const verified = await jwtVerify(googleIdToken, GOOGLE_JWKS, {
+      algorithms: ['RS256'],
+      audience: googleClientId,
+      issuer: ['accounts.google.com', 'https://accounts.google.com'],
+      clockTolerance: 5,
+    })
+    if (typeof verified.payload.sub !== 'string' || !

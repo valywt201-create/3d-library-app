@@ -1,0 +1,10 @@
+﻿orted study action.' }, 400)
+  }
+  if (!title || title.length > MAX_TITLE_CHARACTERS) {
+    return jsonResponse(request, { error: 'The section title could not be used.' }, 400)
+  }
+  if (action !== 'theme' && notes.length > MAX_NOTE_CHARACTERS) {
+    return jsonResponse(request, { error: 'Choose a focused passage to work with.' }, 413)
+  }
+  if (action !== 'answer' && action !== 'theme' && !notes) {
+    return jsonResponse(request, { error: 'Add some notes to this section to get started.' }, 400

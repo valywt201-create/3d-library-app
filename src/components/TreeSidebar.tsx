@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronDown, FolderPlus, Pencil, Plus, Trash2 } from 'lucide-react'
 import { PALETTE, findNode, sfx, useLibrary, useTree } from '../shared'
 import type { TNode } from '../shared'
-import { TRASH_RETENTION_DAYS } from '../lib/settings'
+import { TRASH_RETENTION_DAYS, useSettings } from '../lib/settings'
+import { tr, useLocale } from '../lib/i18n'
 import { collectNodeIds, moveToTrash } from '../lib/trash'
 import Uploader from './Uploader'
 import Sketchpad from './Sketchpad'
@@ -11,65 +12,69 @@ import Library from './Library'
 import ToolsPanel from './ToolsPanel'
 import NotesEditor from './NotesEditor'
 
-/* ============ نموذج إضافة (قسم / فرع) ============ */
 interface AddFormProps {
   placeholder: string
   color: string
+  addLabel: string
   onSubmit: (title: string) => void
 }
 
-function AddForm({ placeholder, color, onSubmit }: AddFormProps) {
-  const [v, setV] = useState('')
-
+function AddForm({ placeholder, color, addLabel, onSubmit }: AddFormProps) {
+  const [value, setValue] = useState('')
   const submit = (): void => {
-    const t = v.trim()
-    if (!t) return
-    onSubmit(t)
-    setV('')
+    const title = value.trim()
+    if (!title) return
+    onSubmit(title)
+    setValue('')
   }
 
   return (
     <div className="flex gap-2">
       <input
-        value={v}
-        onChange={e => setV(e.target.value)}
-        onKeyDown={e => e.key === 'Enter' && submit()}
+        value={value}
+        onChange={event => setValue(event.target.value)}
+        onKeyDown={event => { if (event.key === 'Enter') submit() }}
         placeholder={placeholder}
-        className="min-w-0 flex-1 rounded bg-white/10 px-3 py-1.5 text-sm outline-none focus:ring-1"
+        className="min-w-0 flex-1 rounded-xl border border-white/5 bg-white/5 px-3 py-2 text-sm outline-none transition focus:border-white/20 focus:ring-1"
         style={{ ['--tw-ring-color' as string]: color }}
       />
       <button
-        aria-label={placeholder}
+        type="button"
+        aria-label={addLabel}
         onClick={submit}
-        className="flex items-center gap-1 rounded px-3 py-1.5 text-sm font-semibold text-black"
+        className="flex shrink-0 items-center gap-1 rounded-xl px-3 py-2 text-sm font-semibold text-black transition active:scale-95"
         style={{ background: color }}
       >
-        <Plus size={14} />إضافة
+        <Plus size={14} />{addLabel}
       </button>
     </div>
   )
 }
 
-/* ============ عقدة الشجرة (أكورديون متدرّج بعمق غير محدود) ============ */
 interface TreeNodeItemProps {
   node: TNode
   parentPath: string[]
   depth: number
-  onNotice: (msg: string) => void
+  onNotice: (message: string) => void
 }
 
 function TreeNodeItem({ node, parentPath, depth, onNotice }: TreeNodeItemProps) {
+  const locale = useLocale()
+  const { viewMode } = useSettings()
   const { items } = useLibrary()
   const { tree, path, setPath, addNode, removeNode } = useTree()
-  const [sketch, setSketch] = useState(false)
+  const [sketchOpen, setSketchOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
-
   const color = PALETTE[node.ci % PALETTE.length]
   const myPath = [...parentPath, node.id]
-  // المسار النشط يحتوي فرعاً واحداً فقط في كل مستوى، فيكفي فحص موضع هذا المستوى
   const open = path[depth] === node.id
   const active = open && path.length === myPath.length
-  const count = items.filter(i => i.nodeId === node.id).length
+  const count = items.filter(item => item.nodeId === node.id).length
+  const text = (english: string, arabic: string): string => tr(locale, english, arabic)
+  const nodePathKey = myPath
+    .map(id => findNode(tree, id)?.title.trim().normalize('NFKC').toLocaleLowerCase(locale) ?? '')
+    .filter(Boolean)
+    .join('/')
 
   const toggle = (): void => {
     if (open) sfx.close()
@@ -77,47 +82,46 @@ function TreeNodeItem({ node, parentPath, depth, onNotice }: TreeNodeItemProps) 
     setPath(open ? parentPath : myPath)
   }
 
-  // الحذف: ينقل الفرع وملفاته إلى سلة المهملات، ولا يحذف شيئاً قبل نجاح الحفظ فيها
   const handleDelete = async (): Promise<void> => {
     if (deleting) return
-    const ok = window.confirm(
-      `نقل «${node.title}» وكل فروعه وملفاته إلى سلة المهملات؟\nيمكنك استعادته من الإعدادات خلال ${TRASH_RETENTION_DAYS} يوماً.`,
+    const message = text(
+      `Move “${node.title}” and its sections and files to the trash? You can restore it from Settings for ${TRASH_RETENTION_DAYS} days.`,
+      `نقل «${node.title}» وكل فروعه وملفاته إلى المحذوفات؟ يمكنك استعادته من الإعدادات خلال ${TRASH_RETENTION_DAYS} يوماً.`,
     )
-    if (!ok) return
+    if (!window.confirm(message)) return
     setDeleting(true)
 
     const ids = new Set(collectNodeIds(node))
-    const files = items.flatMap(i =>
-      ids.has(i.nodeId) && i.file
-        ? [{ nodeId: i.nodeId, name: i.name, kind: i.kind, size: i.size, file: i.file }]
-        : [],
-    )
-    // موضعه الأصلي: أبوه وترتيبه بين إخوته
+    const files = items.flatMap(item => ids.has(item.nodeId) && item.file
+      ? [{ nodeId: item.nodeId, name: item.name, kind: item.kind, size: item.size, file: item.file }]
+      : [])
     const parentId = parentPath.length ? parentPath[parentPath.length - 1] : null
     const siblings = parentId === null ? tree : findNode(tree, parentId)?.children ?? []
-    const index = Math.max(0, siblings.findIndex(n => n.id === node.id))
-
+    const index = Math.max(0, siblings.findIndex(sibling => sibling.id === node.id))
     const saved = await moveToTrash({ node, parentId, index, files })
+
     if (!saved) {
-      const force = window.confirm('تعذّر حفظه في سلة المهملات (التخزين غير متاح أو ممتلئ).\nهل تريد حذفه نهائياً؟')
+      const force = window.confirm(text(
+        'The trash could not be saved in this browser. Permanently delete this section?',
+        'تعذّر حفظ العنصر في المحذوفات. هل تريد حذفه نهائياً؟',
+      ))
       if (!force) {
         setDeleting(false)
         return
       }
     }
+
     sfx.close()
     setPath(parentPath)
     removeNode(node.id)
-    onNotice(
-      saved
-        ? `نُقل «${node.title}» إلى سلة المهملات، ويمكن استعادته من الإعدادات.`
-        : `حُذف «${node.title}» نهائياً.`,
-    )
+    onNotice(saved
+      ? text(`“${node.title}” was moved to the trash.`, `نُقل «${node.title}» إلى المحذوفات.`)
+      : text(`“${node.title}” was permanently removed.`, `حُذف «${node.title}» نهائياً.`))
   }
 
   return (
     <div
-      className="overflow-hidden rounded-lg transition-shadow"
+      className="overflow-hidden rounded-xl transition-shadow"
       style={{
         borderInlineStart: `3px solid ${color}`,
         background: open ? `linear-gradient(90deg, ${color}12, rgba(20,23,31,.78))` : 'rgba(20,23,31,.72)',
@@ -125,22 +129,17 @@ function TreeNodeItem({ node, parentPath, depth, onNotice }: TreeNodeItemProps) 
       }}
     >
       <button
+        type="button"
         aria-expanded={open}
         onClick={toggle}
-        className={`flex w-full items-center justify-between gap-2 px-4 text-start ${
-          depth === 0 ? 'py-3 text-lg font-semibold' : 'py-2 text-sm'
-        }`}
+        className={`flex w-full items-center justify-between gap-2 px-4 text-start transition hover:bg-white/[0.03] ${depth === 0 ? (viewMode === 'compact' ? 'py-2.5 text-base font-semibold sm:text-lg' : 'py-3 text-base font-semibold sm:text-lg') : (viewMode === 'compact' ? 'py-2 text-sm' : 'py-2.5 text-sm')}`}
       >
         <span className="flex min-w-0 items-center gap-2">
           <span className="truncate" style={{ color: open ? color : undefined }}>{node.title}</span>
-          {count > 0 && (
-            <span className="rounded-full px-2 text-xs" style={{ background: color + '33', color }}>{count}</span>
-          )}
-          {active && (
-            <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} aria-label="الفرع النشط" />
-          )}
+          {count > 0 && <span className="rounded-full px-2 text-xs tabular-nums" style={{ background: color + '33', color }}>{count}</span>}
+          {active && <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: color }} aria-label={text('Selected section', 'القسم المحدد')} />}
         </span>
-        <motion.span animate={{ rotate: open ? 180 : 0 }}><ChevronDown size={18} /></motion.span>
+        <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}><ChevronDown size={18} /></motion.span>
       </button>
 
       <AnimatePresence initial={false}>
@@ -152,26 +151,25 @@ function TreeNodeItem({ node, parentPath, depth, onNotice }: TreeNodeItemProps) 
             transition={{ duration: 0.25, ease: 'easeInOut' }}
             className="overflow-hidden"
           >
-            <div className="space-y-3 p-3">
+            <div className={`${viewMode === 'compact' ? 'space-y-2.5' : 'space-y-3'} p-3`}>
               <Uploader nodeId={node.id} color={color} />
-
               <button
-                onClick={() => { setSketch(s => !s); sfx.click() }}
-                aria-pressed={sketch}
-                className="flex items-center gap-1 rounded bg-white/10 px-2 py-1 text-sm hover:bg-white/20"
+                type="button"
+                onClick={() => { setSketchOpen(value => !value); sfx.click() }}
+                aria-pressed={sketchOpen}
+                className="flex items-center gap-1.5 rounded-lg bg-white/10 px-2.5 py-1.5 text-sm transition hover:bg-white/20"
               >
-                <Pencil size={14} />{sketch ? 'إخفاء لوحة الرسم' : 'لوحة رسم'}
+                <Pencil size={14} />{sketchOpen ? text('Hide sketchpad', 'إخفاء لوحة الرسم') : text('Sketchpad', 'لوحة الرسم')}
               </button>
-              {sketch && <Sketchpad nodeId={node.id} color={color} />}
-
+              {sketchOpen && <Sketchpad nodeId={node.id} color={color} />}
               <Library nodeId={node.id} color={color} />
-
-              {active && <NotesEditor key={node.id} nodeId={node.id} title={node.title} />}
+              {active && <NotesEditor key={node.id} nodeId={node.id} title={node.title} nodePathKey={nodePathKey} />}
 
               <div className="space-y-2 border-t border-white/10 pt-3">
                 <AddForm
-                  placeholder={`فرع جديد داخل «${node.title}»`}
+                  placeholder={text(`New section inside “${node.title}”`, `فرع جديد داخل «${node.title}»`)}
                   color={color}
+                  addLabel={text('Add', 'إضافة')}
                   onSubmit={title => {
                     const id = addNode(node.id, title)
                     sfx.success()
@@ -179,16 +177,16 @@ function TreeNodeItem({ node, parentPath, depth, onNotice }: TreeNodeItemProps) 
                   }}
                 />
                 <button
+                  type="button"
                   onClick={() => { void handleDelete() }}
                   disabled={deleting}
-                  className="flex items-center gap-1 text-xs opacity-70 hover:opacity-100 disabled:opacity-40"
+                  className="flex items-center gap-1.5 text-xs opacity-65 transition hover:opacity-100 disabled:opacity-40"
                 >
-                  <Trash2 size={12} />{deleting ? 'جارٍ النقل…' : 'نقل هذا الفرع إلى سلة المهملات'}
+                  <Trash2 size={12} />{deleting ? text('Moving…', 'جارٍ النقل…') : text('Move this section to trash', 'نقل هذا الفرع إلى المحذوفات')}
                 </button>
               </div>
 
               {node.children.length > 0 && (
-                // الدرج: كل مستوى يُزاح درجة إضافية، وخط رابط بلون الأب يصل الفروع به
                 <motion.div
                   initial={{ opacity: 0, paddingInlineStart: 0 }}
                   animate={{ opacity: 1, paddingInlineStart: 24 }}
@@ -197,13 +195,10 @@ function TreeNodeItem({ node, parentPath, depth, onNotice }: TreeNodeItemProps) 
                   className="space-y-2"
                   style={{ borderInlineStart: `2px solid ${color}66`, marginInlineStart: 8 }}
                 >
-                  {node.children.map(ch => (
-                    <div key={ch.id} className="relative">
-                      <span
-                        aria-hidden
-                        style={{ position: 'absolute', insetInlineStart: -24, top: 20, width: 24, height: 2, background: color + '66' }}
-                      />
-                      <TreeNodeItem node={ch} parentPath={myPath} depth={depth + 1} onNotice={onNotice} />
+                  {node.children.map(child => (
+                    <div key={child.id} className="relative">
+                      <span aria-hidden="true" style={{ position: 'absolute', insetInlineStart: -24, top: 20, width: 24, height: 2, background: color + '66' }} />
+                      <TreeNodeItem node={child} parentPath={myPath} depth={depth + 1} onNotice={onNotice} />
                     </div>
                   ))}
                 </motion.div>
@@ -216,56 +211,55 @@ function TreeNodeItem({ node, parentPath, depth, onNotice }: TreeNodeItemProps) 
   )
 }
 
-/* ============ القائمة الجانبية (العمود الأيمن) ============ */
 export default function TreeSidebar() {
+  const locale = useLocale()
+  const { viewMode } = useSettings()
+  const compactMode = viewMode === 'compact'
   const { tree, setPath, addNode } = useTree()
   const [notice, setNotice] = useState('')
+  const text = (english: string, arabic: string): string => tr(locale, english, arabic)
 
-  // إشعار قصير يختفي وحده بعد 7 ثوانٍ
   useEffect(() => {
     if (!notice) return undefined
-    const t = window.setTimeout(() => setNotice(''), 7000)
-    return () => window.clearTimeout(t)
+    const timer = window.setTimeout(() => setNotice(''), 6_000)
+    return () => window.clearTimeout(timer)
   }, [notice])
 
   return (
     <main
-      className="space-y-3 py-6"
-      style={{ width: 'min(44rem, 92vw)', marginLeft: 'auto', marginRight: 'clamp(8px, 5vw, 96px)' }}
+      data-tour="tree-categories"
+      data-view-mode={viewMode}
+      data-panel-side={locale === 'ar' ? 'right' : 'left'}
+      className={compactMode
+        ? `fixed bottom-0 top-14 z-10 w-full max-w-[31rem] overflow-y-auto overscroll-contain border-white/10 bg-slate-950/90 px-3 py-4 shadow-2xl shadow-black/40 backdrop-blur-2xl transition-[width,transform] duration-300 ease-out sm:px-4 sm:py-5 ${locale === 'ar' ? 'right-0 border-l' : 'left-0 border-r'}`
+        : 'relative mx-auto w-full max-w-none space-y-3 px-3 py-5 transition-[max-width,padding] duration-300 ease-out sm:px-5 sm:py-6'}
     >
-      <div className="glass rounded-lg p-3">
-        <div className="mb-2 flex items-center gap-2 text-sm opacity-80">
-          <FolderPlus size={16} />قسم رئيسي جديد
+      <section className={`glass rounded-2xl border border-white/[0.06] ${compactMode ? 'p-3 sm:p-4' : 'p-3.5 sm:p-4'}`}>
+        <div className="mb-2.5 flex items-center gap-2 text-sm font-medium text-white/80">
+          <FolderPlus size={16} style={{ color: 'var(--accent)' }} />{text('Create a top-level category', 'إنشاء قسم رئيسي')}
         </div>
         <AddForm
-          placeholder="مثال: الجامعة، الأدعية، ملاحظات شخصية"
+          placeholder={text('Trading, Welding, Quran, Art, Learning…', 'التداول، اللحام، القرآن، الفن، التعلم…')}
           color="var(--accent)"
+          addLabel={text('Add category', 'إضافة قسم')}
           onSubmit={title => {
             const id = addNode(null, title)
             sfx.success()
             setPath([id])
           }}
         />
-      </div>
+      </section>
 
-      {notice && (
-        <p role="status" className="glass rounded-lg px-3 py-2 text-sm" style={{ borderColor: 'var(--accent)' }}>
-          {notice}
-        </p>
-      )}
+      {notice && <p role="status" className="glass rounded-xl border border-white/10 px-3 py-2 text-sm">{notice}</p>}
 
-      {/* شريط الأدوات: يفتح كل أداة في نافذة عائمة فوق الصفحة */}
-      <div>
+      <section aria-label={text('Library tools', 'أدوات المكتبة')}>
         <ToolsPanel />
+      </section>
+
+      {tree.length === 0 && <p className="py-6 text-center text-sm opacity-60">{text('No categories yet. Create your first one above.', 'لا توجد أقسام بعد. أنشئ أول قسم من الأعلى.')}</p>}
+      <div className={compactMode ? 'space-y-2' : 'space-y-2.5'}>
+        {tree.map(node => <TreeNodeItem key={node.id} node={node} parentPath={[]} depth={0} onNotice={setNotice} />)}
       </div>
-
-      {tree.length === 0 && (
-        <p className="py-6 text-center text-sm opacity-60">لا توجد أقسام بعد. أضف قسمك الأول من الأعلى.</p>
-      )}
-
-      {tree.map(n => (
-        <TreeNodeItem key={n.id} node={n} parentPath={[]} depth={0} onNotice={setNotice} />
-      ))}
     </main>
   )
 }

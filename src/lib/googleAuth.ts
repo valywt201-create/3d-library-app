@@ -111,17 +111,17 @@ function decodeJwt(token: string): Record<string, unknown> | null {
 // يتحقق من الرمز ويحفظ بيانات المستخدم محلياً (دون حفظ الرمز نفسه)
 export function signInWithGoogleCredential(credential: string): AuthResult {
   const c = decodeJwt(credential)
-  if (!c) return { error: 'استجابة Google غير صالحة' }
+  if (!c) return { error: 'Invalid Google response.' }
 
   const iss = c.iss
-  if (iss !== 'https://accounts.google.com' && iss !== 'accounts.google.com') return { error: 'مصدر الاستجابة غير موثوق' }
-  if (c.aud !== GOOGLE_CLIENT_ID) return { error: 'معرّف العميل لا يطابق هذا التطبيق' }
+  if (iss !== 'https://accounts.google.com' && iss !== 'accounts.google.com') return { error: 'The response issuer is not trusted.' }
+  if (c.aud !== GOOGLE_CLIENT_ID) return { error: 'The client ID does not match this application.' }
   const exp = c.exp
-  if (typeof exp !== 'number' || exp * 1000 < Date.now()) return { error: 'انتهت صلاحية استجابة Google، أعد المحاولة' }
+  if (typeof exp !== 'number' || exp * 1000 < Date.now()) return { error: 'The Google response has expired. Please try again.' }
 
   const sub = c.sub
   const email = c.email
-  if (typeof sub !== 'string' || typeof email !== 'string') return { error: 'بيانات الحساب ناقصة في استجابة Google' }
+  if (typeof sub !== 'string' || typeof email !== 'string') return { error: 'Account data is incomplete.' }
   const name = c.name
   const picture = c.picture
 
@@ -178,11 +178,11 @@ function loadGsi(): Promise<GsiId> {
     const done = (): void => {
       const g = getGsi()
       if (g) res(g)
-      else { gsiPromise = null; rej(new Error('تعذّر تهيئة تسجيل الدخول بحساب Google')) }
+      else { gsiPromise = null; rej(new Error('Unable to initialize Google sign-in.')) }
     }
     const fail = (): void => {
       gsiPromise = null
-      rej(new Error('تعذّر تحميل سكربت Google، تحقق من الإنترنت'))
+      rej(new Error('Could not load Google sign-in. Check your connection.'))
     }
     const existing = document.querySelector<HTMLScriptElement>(`script[src="${GSI_SRC}"]`)
     const s = existing ?? document.createElement('script')
@@ -198,15 +198,15 @@ function loadGsi(): Promise<GsiId> {
 }
 
 // يرسم زر Google داخل العنصر، وعند اكتمال الدخول يستدعي onResult
-export async function renderGoogleButton(el: HTMLElement, width: number, onResult: (r: AuthResult) => void): Promise<void> {
+export async function renderGoogleButton(el: HTMLElement, width: number, onResult: (r: AuthResult) => void, locale: 'en' | 'ar' = 'en'): Promise<void> {
   const gsi = await loadGsi()
   gsi.initialize({
     client_id: GOOGLE_CLIENT_ID,
-    callback: r => onResult(r.credential ? signInWithGoogleCredential(r.credential) : { error: 'لم تصل استجابة من Google' }),
+    callback: r => onResult(r.credential ? signInWithGoogleCredential(r.credential) : { error: 'No response from Google.' }),
     ux_mode: 'popup',
   })
   el.innerHTML = ''
-  gsi.renderButton(el, { type: 'standard', theme: 'filled_black', size: 'large', shape: 'pill', text: 'continue_with', logo_alignment: 'left', width, locale: 'ar' })
+  gsi.renderButton(el, { type: 'standard', theme: 'filled_black', size: 'large', shape: 'pill', text: 'continue_with', logo_alignment: 'left', width, locale })
 }
 
 export function signOutGoogle(): void {

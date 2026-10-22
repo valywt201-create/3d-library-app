@@ -1,0 +1,43 @@
+set('Access-Control-Allow-Origin', origin)
+    headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    headers.set('Access-Control-Allow-Headers', 'authorization, apikey, x-client-info, content-type')
+    headers.set('Access-Control-Max-Age', '600')
+  }
+  return headers
+}
+
+function jsonResponse(request: Request, body: Record<string, unknown>, status = 200, extraHeaders?: HeadersInit): Response {
+  const headers = makeHeaders(request.headers.get('origin'))
+  if (extraHeaders) new Headers(extraHeaders).forEach((value, key) => headers.set(key, value))
+  return new Response(JSON.stringify(body), { status, headers })
+}
+
+async function readJsonLimited(request: Request): Promise<Record<string, unknown>> {
+  const reader = request.body?.getReader()
+  if (!reader) throw new SyntaxError('empty body')
+  const chunks: Uint8Array[] = []
+  let totalBytes = 0
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      if (!value) continue
+      totalBytes += value.byteLength
+      if (totalBytes > MAX_BODY_BYTES) {
+        await reader.cancel().catch(() => undefined)
+        throw new RangeError('request body too large')
+      }
+      chunks.push(value)
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
+  const bytes = new Uint8Array(totalBytes)
+  let offset = 0
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes))
+  if (!isReco

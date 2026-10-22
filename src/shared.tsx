@@ -59,14 +59,12 @@ export const PALETTE = ['#5eead4', '#f9a8d4', '#fcd34d', '#93c5fd', '#c4b5fd', '
 
 /* ============ دوال الشجرة ============ */
 const DEFAULT_TREE: TNode[] = [
-  { id: 'univ', title: 'University', ci: 0, children: [
-    { id: 'univ-ai', title: 'AI', ci: 1, children: [] },
-    { id: 'univ-dm', title: 'Discrete Math', ci: 2, children: [] },
-    { id: 'univ-cpp', title: 'C++ Programming', ci: 3, children: [] },
-    { id: 'univ-photos', title: 'Campus Photos', ci: 4, children: [] },
-  ] },
-  { id: 'supp', title: 'Supplications', ci: 5, children: [] },
-  { id: 'notes', title: 'Personal Notes', ci: 6, children: [] },
+  { id: 'domain-trading', title: 'Trading', ci: 0, children: [] },
+  { id: 'domain-welding', title: 'Welding', ci: 1, children: [] },
+  { id: 'domain-quran', title: 'Quran', ci: 2, children: [] },
+  { id: 'domain-art', title: 'Art', ci: 3, children: [] },
+  { id: 'domain-learning', title: 'Learning', ci: 4, children: [] },
+  { id: 'domain-projects', title: 'Projects', ci: 5, children: [] },
 ]
 
 const mapTree = (nodes: TNode[], id: string, fn: (n: TNode) => TNode): TNode[] =>

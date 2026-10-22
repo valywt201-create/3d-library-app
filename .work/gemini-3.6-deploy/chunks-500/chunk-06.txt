@@ -1,0 +1,19 @@
+﻿talBytes += value.byteLength
+      if (totalBytes > MAX_BODY_BYTES) {
+        await reader.cancel().catch(() => undefined)
+        throw new RangeError('request body too large')
+      }
+      chunks.push(value)
+    }
+  } finally {
+    reader.releaseLock()
+  }
+
+  const bytes = new Uint8Array(totalBytes)
+  let offset = 0
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset)
+    offset += chunk.byteLength
+  }
+  const parsed: unknown = JSON.parse(new TextDecoder().decode(bytes))
+  if (!isReco
