@@ -1,0 +1,18 @@
+﻿rd(parsed)) throw new SyntaxError('invalid body')
+  return parsed
+}
+
+function claimRequest(userId: string): boolean {
+  const now = Date.now()
+  const current = rateByGoogleUser.get(userId)
+  if (!current || current.resetsAt <= now) {
+    rateByGoogleUser.set(userId, { count: 1, resetsAt: now + RATE_WINDOW_MS })
+    return true
+  }
+  if (current.count >= MAX_REQUESTS_PER_WINDOW) return false
+  current.count += 1
+  return true
+}
+
+function pruneRateEntries(): void {
+  if (rateByGoogleUser.size < 2

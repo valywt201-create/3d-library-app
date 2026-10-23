@@ -1,0 +1,14 @@
+﻿
+  pruneRateEntries()
+  if (!claimRequest(googleSubject)) {
+    return jsonResponse(request, { error: 'Something interrupted the request. Please try again.' }, 429)
+  }
+
+  let payload: Record<string, unknown>
+  try {
+    payload = await readJsonLimited(request)
+  } catch (error) {
+    return jsonResponse(request, { error: error instanceof RangeError ? 'Choose a focused passage to work with.' : 'Please review the request and try again.' }, error instanceof RangeError ? 413 : 400)
+  }
+
+  const act

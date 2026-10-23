@@ -1,0 +1,4 @@
+In-app Browser JS state was reset; rebuild state before continuing.
+Browser cell stopped: ACTION_IN_DOUBT
+ERROR ACTION_IN_DOUBT
+{"control":{"documentRevision":"rev_abc4572c-3917-4d6d-9fdb-9351aa911d44","error":{"code":"ACTION_IN_DOUBT","retryable":false},"requiresSnapshot":true,"status":"in_doubt","tabId":"tab_76434f88-1358-4c69-9023-68003f290de4"},"kind":"error","schema":"manus.browser/v1"}

@@ -1,0 +1,7 @@
+﻿ion = payload.action
+  const title = typeof payload.nodeTitle === 'string' ? payload.nodeTitle.trim() : ''
+  const notes = typeof payload.notes === 'string' ? payload.notes.trim() : ''
+  const question = typeof payload.question === 'string' ? payload.question.trim() : ''
+  const language: StudyLanguage = payload.language === 'ar' ? 'ar' : 'en'
+  if (action !== 'summarize' && action !== 'quiz' && action !== 'answer' && action !== 'theme') {
+    return jsonResponse(request, { error: 'Choose a supp

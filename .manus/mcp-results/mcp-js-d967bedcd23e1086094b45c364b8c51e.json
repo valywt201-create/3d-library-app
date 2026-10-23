@@ -1,0 +1,5 @@
+In-app Browser JS state was reset; rebuild state before continuing.
+Browser dialog pending; cell stopped. Inspect iab.listTabs() and handle the exact dialog in a new cell; do not replay the triggering action.
+PENDING_DIALOG browser_history
+The page is blocked by a JavaScript dialog. Do not retry the interrupted action. Call browser_handle_dialog with control.tabId, control.documentRevision, and control.pendingDialog.dialogId.
+{"control":{"documentRevision":"rev_1fb83654-8910-4364-8056-9ea9062c8f32","pendingDialog":{"defaultPrompt":"","dialogId":"dialog_06a2f115-ec13-47fb-87cc-2042d41b5571","message":"","type":"beforeunload"},"requiresSnapshot":true,"status":"pending_dialog","tabId":"tab_77138447-b6e6-40b0-8040-c47970caf6b2"},"data":{"receipt":{"action":"browser_history","outcome":"pending_dialog"}},"kind":"success","page":{"contentTrust":"untrusted","title":"notes-ai | Code | Edge Functions | valywt201-create's Project | MyProject | Supabase","url":"https://supabase.com/dashboard/project/ruhoptuesxvzwfcrwwfg/functions/notes-ai/code"},"schema":"manus.browser/v1"}

@@ -1,0 +1,19 @@
+﻿ap(value => {
+    try {
+      const url = new URL(value.trim())
+      return url.protocol === 'http:' || url.protocol === 'https:' ? [url.origin] : []
+    } catch {
+      return []
+    }
+  }))
+}
+
+function makeHeaders(origin: string | null): Headers {
+  const headers = new Headers({
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff',
+    Vary: 'Origin',
+  })
+  if (origin && getAllowedOrigins().has(origin)) {
+    headers.

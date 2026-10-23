@@ -1,0 +1,33 @@
+rd(parsed)) throw new SyntaxError('invalid body')
+  return parsed
+}
+
+function claimRequest(userId: string): boolean {
+  const now = Date.now()
+  const current = rateByGoogleUser.get(userId)
+  if (!current || current.resetsAt <= now) {
+    rateByGoogleUser.set(userId, { count: 1, resetsAt: now + RATE_WINDOW_MS })
+    return true
+  }
+  if (current.count >= MAX_REQUESTS_PER_WINDOW) return false
+  current.count += 1
+  return true
+}
+
+function pruneRateEntries(): void {
+  if (rateByGoogleUser.size < 2_000) return
+  const now = Date.now()
+  for (const [userId, entry] of rateByGoogleUser) {
+    if (entry.resetsAt <= now) rateByGoogleUser.delete(userId)
+  }
+}
+
+function getPrompt(action: StudyAction, language: StudyLanguage, title: string, notes: string, question: string): string {
+  if (action === 'theme') {
+    return 'Create a refined, high-contrast pastel color palette for a dark digital workspace. Return only one valid JSON object with exactly these string keys: background, surface, accent, secondary, text. Every value must be a six-digit hexadecimal color such as #AABBCC. Ensure the text color is readable against the surface and the accent is distinct.'
+  }
+
+  if (language === 'ar') {
+    const material = notes.trim() || 'لا توجد ملاحظات مكتوبة في هذا القسم.'
+    const task = action === 'summarize'
+      ? 'لخّص الملاحظات بوضوح باللغة العربية. استخدم عنواناً قصيراً ونقاطاً مرتبة، وحافظ على المصطلحات المهمة. لا تختلق معلومات غير موجودة. انقل النص القرآني أو الاقتباس كما ورد دون إع

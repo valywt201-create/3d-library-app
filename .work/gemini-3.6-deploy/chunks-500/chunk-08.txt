@@ -1,0 +1,10 @@
+﻿_000) return
+  const now = Date.now()
+  for (const [userId, entry] of rateByGoogleUser) {
+    if (entry.resetsAt <= now) rateByGoogleUser.delete(userId)
+  }
+}
+
+function getPrompt(action: StudyAction, language: StudyLanguage, title: string, notes: string, question: string): string {
+  if (action === 'theme') {
+    return 'Create a refined, high-contrast pastel color palette for a dark digital workspace. Return only one valid JSON object with exactly these string keys: background, surface, accent,

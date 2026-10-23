@@ -1,0 +1,15 @@
+﻿face RateEntry {
+  count: number
+  resetsAt: number
+}
+
+const rateByGoogleUser = new Map<string, RateEntry>()
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function getAllowedOrigins(): Set<string> {
+  const configured = Deno.env.get('ALLOWED_ORIGINS')?.trim()
+  const values = configured ? configured.split(',') : ['http://localhost:5173', 'http://127.0.0.1:5173']
+  return new Set(values.flatM

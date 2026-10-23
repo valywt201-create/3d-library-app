@@ -1,0 +1,11 @@
+﻿ be completed.' }, 405, { Allow: 'POST, OPTIONS' })
+
+  const googleClientId = Deno.env.get('GOOGLE_CLIENT_ID')?.trim()
+  const geminiApiKey = Deno.env.get('GEMINI_API_KEY')?.trim()
+  if (!googleClientId || !geminiApiKey) {
+    return jsonResponse(request, { error: 'The study assistant is being prepared. Please try again soon.' }, 503)
+  }
+
+  const authorization = request.headers.get('authorization') ?? ''
+  const bearerMatch = authorization.match(/^Bearer\s+(.+)$/i)
+  const googleIdToken = beare

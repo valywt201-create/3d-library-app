@@ -1,0 +1,7 @@
+﻿ secondary, text. Every value must be a six-digit hexadecimal color such as #AABBCC. Ensure the text color is readable against the surface and the accent is distinct.'
+  }
+
+  if (language === 'ar') {
+    const material = notes.trim() || 'لا توجد ملاحظات مكتوبة في هذا القسم.'
+    const task = action === 'summarize'
+      ? 'لخّص الملاحظات بوضوح باللغة العربية. استخدم عنواناً قصيراً ونقاطاً مرتبة، وحافظ على المصطلحات المهمة. لا تختلق معلومات غير موجودة. انقل النص القرآني أو الاقتباس كما ورد دون إع

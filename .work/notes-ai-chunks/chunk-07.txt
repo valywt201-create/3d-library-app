@@ -1,0 +1,28 @@
+ion = payload.action
+  const title = typeof payload.nodeTitle === 'string' ? payload.nodeTitle.trim() : ''
+  const notes = typeof payload.notes === 'string' ? payload.notes.trim() : ''
+  const question = typeof payload.question === 'string' ? payload.question.trim() : ''
+  const language: StudyLanguage = payload.language === 'ar' ? 'ar' : 'en'
+  if (action !== 'summarize' && action !== 'quiz' && action !== 'answer' && action !== 'theme') {
+    return jsonResponse(request, { error: 'Choose a supported study action.' }, 400)
+  }
+  if (!title || title.length > MAX_TITLE_CHARACTERS) {
+    return jsonResponse(request, { error: 'The section title could not be used.' }, 400)
+  }
+  if (action !== 'theme' && notes.length > MAX_NOTE_CHARACTERS) {
+    return jsonResponse(request, { error: 'Choose a focused passage to work with.' }, 413)
+  }
+  if (action !== 'answer' && action !== 'theme' && !notes) {
+    return jsonResponse(request, { error: 'Add some notes to this section to get started.' }, 400)
+  }
+  if (action === 'answer' && (!question || question.length > MAX_QUESTION_CHARACTERS)) {
+    return jsonResponse(request, { error: 'Please enter a clear, focused question.' }, 400)
+  }
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 30_000)
+  let geminiResponse: Response
+  try {
+    geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+      method: 'POST',
+      headers: 

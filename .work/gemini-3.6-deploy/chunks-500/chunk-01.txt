@@ -1,0 +1,15 @@
+﻿import { createRemoteJWKSet, jwtVerify } from 'npm:jose@6'
+
+const GOOGLE_JWKS = createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/certs'))
+const GEMINI_MODEL = 'gemini-3.6-flash'
+const MAX_BODY_BYTES = 100 * 1024
+const MAX_NOTE_CHARACTERS = 16_000
+const MAX_QUESTION_CHARACTERS = 1_200
+const MAX_TITLE_CHARACTERS = 160
+const RATE_WINDOW_MS = 60_000
+const MAX_REQUESTS_PER_WINDOW = 12
+
+type StudyAction = 'summarize' | 'quiz' | 'answer' | 'theme'
+type StudyLanguage = 'en' | 'ar'
+
+inter

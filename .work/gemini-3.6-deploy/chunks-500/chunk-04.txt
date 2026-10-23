@@ -1,0 +1,11 @@
+﻿set('Access-Control-Allow-Origin', origin)
+    headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS')
+    headers.set('Access-Control-Allow-Headers', 'authorization, apikey, x-client-info, content-type')
+    headers.set('Access-Control-Max-Age', '600')
+  }
+  return headers
+}
+
+function jsonResponse(request: Request, body: Record<string, unknown>, status = 200, extraHeaders?: HeadersInit): Response {
+  const headers = makeHeaders(request.headers.get('origin'))
+  if (extraHeaders) new Headers

@@ -1,0 +1,5 @@
+﻿ish commentary from quoted material.'
+    : action === 'quiz'
+      ? 'Create a five-question multiple-choice review quiz in English with four options per question. Use only the notes, then provide an answer key with brief explanations. Do not invent facts.'
+      : `Answer the question in English, prioritizing the section notes. If the notes are insufficient, say so and clearly distinguish any general knowledge from the notes. Do not invent quotations.\n\nUser question: ${question}`
+  return `S
