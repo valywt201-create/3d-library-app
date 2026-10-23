@@ -1,5 +1,0 @@
-In-app Browser JS state was preserved. Completed actions were not rolled back; refresh stale UI handles and continue only the remaining work.
-{"code":"ELEMENT_NOT_FOUND"}
-No matching element
-ERROR STALE_PAGE
-{"control":{"documentRevision":"rev_d2d9ff32-c7ca-4fcd-b6bb-087d14551ce6","error":{"code":"STALE_PAGE","retryable":true},"requiresSnapshot":true,"status":"error","tabId":"tab_3a01f0f0-1a21-48dc-b703-4c0488364275"},"kind":"error","schema":"manus.browser/v1"}
