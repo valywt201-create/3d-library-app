@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
+/* eslint-disable react-refresh/only-export-components -- ملف الحالة المشتركة يصدّر عمداً providers وhooks وثوابت مستخدمة في التطبيق. */
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { dbDelete, dbGetAll, dbPut } from './db'
 
@@ -99,9 +100,12 @@ function writeJSON(key: string, value: unknown) {
 }
 
 // يتحقق أن كل عقدة سليمة البنية، حتى لا تنهار الواجهة إن تلف المحتوى المحفوظ
-const isNode = (n: any): n is TNode =>
-  !!n && typeof n.id === 'string' && typeof n.title === 'string' && typeof n.ci === 'number' &&
-  Array.isArray(n.children) && n.children.every(isNode)
+const isNode = (value: unknown): value is TNode => {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
+  const node = value as Record<string, unknown>
+  return typeof node.id === 'string' && typeof node.title === 'string' && typeof node.ci === 'number' &&
+    Array.isArray(node.children) && node.children.every(isNode)
+}
 
 function loadTree(): TNode[] {
   const parsed = readJSON(TREE_KEY)
@@ -148,7 +152,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false)
   const [storageError, setStorageError] = useState('')
   const itemsRef = useRef(items) // آخر نسخة من الملفات، نستخدمها في الحذف دون آثار جانبية داخل setState
-  itemsRef.current = items
+  useLayoutEffect(() => { itemsRef.current = items }, [items])
 
   // استرجاع الملفات المحفوظة عند فتح الصفحة
   useEffect(() => {
@@ -227,7 +231,7 @@ export function TreeProvider({ children }: { children: ReactNode }) {
   const [rawPath, setPath] = useState<string[]>(loadPath)
   const { removeByNodes } = useLibrary()
   const treeRef = useRef(tree) // آخر نسخة من الشجرة، تتيح لـ restoreNode إرجاع نتيجة فورية متزامنة
-  treeRef.current = tree
+  useLayoutEffect(() => { treeRef.current = tree }, [tree])
 
   // المسار المعروض دائماً سليم: لا يشير أبداً إلى فرع محذوف
   const path = useMemo(() => validPath(tree, rawPath), [tree, rawPath])

@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState } from 'react'
 import { Send } from 'lucide-react'
 import { useLibrary, useTree } from '../shared'
-import { ACCENT, askAI, hasAI, panel } from './toolkit'
+import { requestStudyAI } from '../lib/studyAssistant'
+import { isSupabaseConfigured } from '../lib/supabase'
+import { ACCENT, panel } from './toolkit'
+import { useLocale } from '../lib/i18n'
 
 interface Msg {
   role: 'me' | 'ai'
   text: string
 }
 
-// محادثة عن مكتبتك: بحث محلي في الملفات، ومع AI_ENDPOINT (في toolkit.ts) تصبح محادثة ذكاء اصطناعي كاملة
+// محادثة المكتبة تستخدم notes-ai الآمنة، مع بحث محلي بديل عند غياب إعداد Supabase.
 export default function AIChat() {
+  const locale = useLocale()
   const { items } = useLibrary()
   const { titleOf } = useTree()
   const [msgs, setMsgs] = useState<Msg[]>([])
@@ -27,19 +31,25 @@ export default function AIChat() {
     setBusy(true)
     try {
       let answer: string
-      if (hasAI()) {
-        const ctx = items.map(i => `${i.name} (${i.kind}, ${titleOf(i.nodeId)})`).join('\n')
-        answer = await askAI('chat', `ملفات المستخدم:\n${ctx || '(لا توجد ملفات)'}\n\nسؤال المستخدم: ${question}`)
+      if (isSupabaseConfigured) {
+        const context = items.map(i => `${i.name} (${i.kind}, ${titleOf(i.nodeId)})`).join('\n').slice(0, 16_000)
+        answer = await requestStudyAI({ action: 'answer', nodeTitle: 'Library', notes: context, question, language: locale })
       } else {
         const words = question.toLowerCase().split(/\s+/).filter(w => w.length > 1)
         const hits = items.filter(i => words.some(w => `${i.name} ${i.kind} ${titleOf(i.nodeId)}`.toLowerCase().includes(w)))
         answer = hits.length
-          ? `وجدت ${hits.length}: ${hits.map(h => `${h.name} (${titleOf(h.nodeId)})`).join('، ')}.`
-          : `لا توجد نتائج. مكتبتك تحتوي ${items.length} ملف. (للمحادثة الذكية ضع AI_ENDPOINT في toolkit.ts)`
+          ? `وجدت ${hits.length}: ${hits.map(h => `${h.name} (${titleOf(h.nodeId)})`).join('، ')}.\n\nالمساعد الذكي غير مهيأ؛ تحقّق من إعداد Supabase ونشر وظيفة notes-ai.`
+          : `لا توجد نتائج. مكتبتك تحتوي ${items.length} ملف. البحث المحلي متاح؛ ولتفعيل المساعد الذكي تحقّق من إعداد Supabase ونشر وظيفة notes-ai.`
       }
       setMsgs(m => [...m, { role: 'ai', text: answer }])
     } catch (e) {
-      setMsgs(m => [...m, { role: 'ai', text: (e as Error).message }])
+      const message = e instanceof Error ? e.message.toLowerCase() : ''
+      const response = message.includes('sign in') || message.includes('سجّل الدخول')
+        ? 'سجّل الدخول بحساب Google أو أعد الاتصال لاستخدام مساعد المكتبة.'
+        : message.includes('supabase') || message.includes('preparing') || message.includes('not configured') || message.includes('تهيئتها')
+          ? 'خدمة الذكاء الاصطناعي غير مهيأة بعد. تحقّق من إعداد Supabase ونشر وظيفة notes-ai.'
+          : 'تعذّر الاتصال بمساعد المكتبة. تحقّق من الاتصال وإعداد وظيفة notes-ai ثم أعد المحاولة.'
+      setMsgs(m => [...m, { role: 'ai', text: response }])
     } finally {
       setBusy(false)
     }

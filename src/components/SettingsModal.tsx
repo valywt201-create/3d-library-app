@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArchiveRestore, Bot, Check, Palette, RotateCcw, ShieldCheck, Sparkles, Trash2, Wrench, X } from 'lucide-react'
+import { ArchiveRestore, Bot, Check, Palette, RotateCcw, ShieldCheck, Shuffle, Sparkles, Trash2, Wrench, X } from 'lucide-react'
 import { sfx, useLibrary, useTree } from '../shared'
 import {
-  ACCENT_PRESETS, AI_PERSONALITIES, TOOL_CATALOG, TRASH_RETENTION_DAYS,
+  ACCENT_PRESETS, AI_PERSONALITIES, RANDOMIZABLE_THEMES, TOOL_CATALOG, TRASH_RETENTION_DAYS,
   readableOn, resetSettings, toggleToolVisibility, updateSettings, useSettings,
 } from '../lib/settings'
 import type { ThemeId, ThemePalette } from '../lib/settings'
@@ -30,6 +30,18 @@ const TABS: readonly { id: TabId; label: { en: string; ar: string }; Icon: typeo
 
 const THEMES: readonly { id: ThemeId; label: { en: string; ar: string }; hint: { en: string; ar: string }; swatch: string }[] = [
   { id: 'space-live', label: { en: 'Live cosmos', ar: 'فضاء متحرك' }, hint: { en: 'Subtle animated stars', ar: 'نجوم متحركة بهدوء' }, swatch: 'linear-gradient(135deg,#10172c,#653b8f,#7dd3fc)' },
+  { id: 'wave-field', label: { en: 'Particle waves', ar: 'موجات الجسيمات' }, hint: { en: 'A 3D wave that follows your pointer', ar: 'موجة ثلاثية الأبعاد تستجيب للمؤشر' }, swatch: 'linear-gradient(135deg,#061c2b,#12627a,#67e8f9)' },
+  { id: 'orbit-drift', label: { en: 'Orbit drift', ar: 'مدارات متحركة' }, hint: { en: 'Glowing 3D orbits respond to movement', ar: 'مدارات مضيئة تستجيب لحركة المؤشر' }, swatch: 'linear-gradient(135deg,#15112d,#573c82,#d8b4fe)' },
+  { id: 'liquid-velvet', label: { en: 'Liquid velvet', ar: 'مخمل سائل' }, hint: { en: 'Abstract flowing color layers', ar: 'طبقات لونية تجريدية متدفقة' }, swatch: 'linear-gradient(135deg,#292033,#875b8d,#e9a8cf)' },
+  { id: 'pastel-waves', label: { en: 'Pastel waves', ar: 'موجات باستيل' }, hint: { en: 'Soft particle waves in blended hues', ar: 'موجات جسيمات ناعمة بألوان متداخلة' }, swatch: 'linear-gradient(135deg,#292743,#9c91d9,#efb7d8)' },
+  { id: 'botanical-flow', label: { en: 'Botanical flow', ar: 'انسياب نباتي' }, hint: { en: 'A gentle nature-inspired leaf drift', ar: 'أوراق متحركة بإيحاء طبيعي هادئ' }, swatch: 'linear-gradient(135deg,#172a29,#4e8b72,#b7d8a4)' },
+  { id: 'rose-nebula', label: { en: 'Rose nebula', ar: 'سديم الورد' }, hint: { en: 'Soft rose-colored cosmic particles', ar: 'جسيمات كونية ناعمة بدرجات الورد' }, swatch: 'linear-gradient(135deg,#25162f,#804d8c,#f39ac6)' },
+  { id: 'moonlit-bloom', label: { en: 'Moonlit bloom', ar: 'زهر قمري' }, hint: { en: 'Moonlight with drifting luminous petals', ar: 'ضوء قمر وبتلات مضيئة عائمة' }, swatch: 'linear-gradient(135deg,#161a35,#59608e,#e4cbea)' },
+  { id: 'cyber-grid', label: { en: 'Cyber grid', ar: 'شبكة سيبرانية' }, hint: { en: 'A neon tech grid with soft parallax', ar: 'شبكة تقنية نيونية بمنظور متحرك' }, swatch: 'linear-gradient(135deg,#071a29,#087783,#38e4d5)' },
+  { id: 'geometric-matrix', label: { en: 'Geometric matrix', ar: 'مصفوفة هندسية' }, hint: { en: 'Floating dark geometric wireframes', ar: 'أشكال هندسية سلكية عائمة وداكنة' }, swatch: 'linear-gradient(135deg,#101d2c,#147d78,#83d994)' },
+  { id: 'tech-pulse', label: { en: 'Tech pulse', ar: 'نبض تقني' }, hint: { en: 'Warm concentric rings in motion', ar: 'حلقات متحدة المركز تتحرك بإيقاع' }, swatch: 'linear-gradient(135deg,#21170e,#8b5727,#f2aa47)' },
+  { id: 'nova-drive', label: { en: 'Nova drive', ar: 'محرك نوفا' }, hint: { en: 'A vivid sci-fi engine and orbital lights', ar: 'محرك خيال علمي وأضواء مدارية' }, swatch: 'linear-gradient(135deg,#21172c,#b24d52,#ffae67)' },
+  { id: 'star-forge', label: { en: 'Star forge', ar: 'مِسبك النجوم' }, hint: { en: 'A crystalline star cage with a drifting orbit', ar: 'قلب نجمي بلوري مع مدار عائم' }, swatch: 'linear-gradient(135deg,#10192d,#416997,#a6d4ff)' },
   { id: 'space-static', label: { en: 'Quiet cosmos', ar: 'فضاء هادئ' }, hint: { en: 'A calm, static night sky', ar: 'سماء ليلية ثابتة' }, swatch: 'linear-gradient(135deg,#10172c,#242447,#7384c7)' },
   { id: 'solid', label: { en: 'Midnight', ar: 'داكن بسيط' }, hint: { en: 'Minimal and focused', ar: 'بسيط ومريح للتركيز' }, swatch: 'linear-gradient(135deg,#090b11,#202330)' },
   { id: 'cats', label: { en: 'Velvet cats', ar: 'قطط مخملية' }, hint: { en: 'Warm feline-inspired tones', ar: 'درجات دافئة مستوحاة من القطط' }, swatch: 'linear-gradient(135deg,#30202b,#754c56,#e9aa80)' },
@@ -209,6 +221,7 @@ export default function SettingsModal({ open, onClose, onRequestAuth }: Props) {
   const [tab, setTab] = useState<TabId>('look')
   const [themeBusy, setThemeBusy] = useState(false)
   const [themeMessage, setThemeMessage] = useState('')
+  const [randomThemeMessage, setRandomThemeMessage] = useState('')
   const [legalDocument, setLegalDocument] = useState<LegalDocument | null>(null)
   const foreground = settings.accentMode === 'custom' ? readableOn(settings.customAccent) : '#111'
   const buttonStyle = (active: boolean): CSSProperties => active ? { background: HI, color: foreground } : {}
@@ -249,6 +262,16 @@ export default function SettingsModal({ open, onClose, onRequestAuth }: Props) {
     } finally {
       setThemeBusy(false)
     }
+  }
+
+  const randomizeTheme = (): void => {
+    const alternatives = RANDOMIZABLE_THEMES.filter(theme => theme !== settings.theme)
+    const choices = alternatives.length ? alternatives : RANDOMIZABLE_THEMES
+    const nextTheme = choices[Math.floor(Math.random() * choices.length)]
+    if (!nextTheme) return
+    updateSettings({ theme: nextTheme })
+    setRandomThemeMessage(text('A new 3D theme is active and saved.', 'تم تفعيل السمة الثلاثية الأبعاد وحفظها.'))
+    sfx.success()
   }
 
   return (
@@ -320,8 +343,23 @@ export default function SettingsModal({ open, onClose, onRequestAuth }: Props) {
                     <div className="flex items-end justify-between gap-2">
                       <div>
                         <h3 className="text-sm font-semibold">{text('Visual theme', 'السمة البصرية')}</h3>
-                        <p className="mt-0.5 text-[11px] opacity-55">{text('Choose a quiet style for your workspace.', 'اختر أسلوباً هادئاً لمساحة عملك.')}</p>
+                        <p className="mt-0.5 text-[11px] opacity-55">{text('Choose any style for your workspace.', 'اختر أي أسلوب يناسب مساحة عملك.')}</p>
                       </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.035] px-3 py-2.5">
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium">{text('3D motion mode', 'نمط الحركة الثلاثية الأبعاد')}</p>
+                        <p className="mt-0.5 text-[10px] opacity-60">
+                          {settings.animationMode === 'auto'
+                            ? text('Auto-random animation', 'حركة تلقائية عشوائية')
+                            : text('Mouse-interactive movement', 'حركة تفاعلية مع المؤشر')}
+                        </p>
+                      </div>
+                      <Switch
+                        on={settings.animationMode === 'auto'}
+                        label={text('Automatic random 3D animation', 'الحركة الثلاثية الأبعاد التلقائية العشوائية')}
+                        onChange={enabled => { sfx.click(); updateSettings({ animationMode: enabled ? 'auto' : 'mouse' }) }}
+                      />
                     </div>
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                       {THEMES.map(theme => (
@@ -341,6 +379,14 @@ export default function SettingsModal({ open, onClose, onRequestAuth }: Props) {
                         </button>
                       ))}
                     </div>
+                    <button
+                      type="button"
+                      onClick={randomizeTheme}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-sky-200/15 bg-sky-300/[0.07] px-3 py-2.5 text-xs font-medium transition hover:bg-sky-300/[0.13]"
+                    >
+                      <Shuffle size={14} />{text('Surprise me with a 3D theme', 'اختر لي سمة ثلاثية الأبعاد عشوائياً')}
+                    </button>
+                    {randomThemeMessage && <p role="status" className="text-xs leading-5 opacity-75">{randomThemeMessage}</p>}
                     <button
                       type="button"
                       onClick={() => { void generatePastelPalette() }}

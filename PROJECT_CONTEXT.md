@@ -8,6 +8,11 @@ An interactive academic document and PDF transformation platform with AI summari
 - Tailwind CSS
 - Roo Code AI Assistant (Gemini API)
 
+## خطة التنفيذ على staging
+- تمر طلبات المتصفح إلى Gemini عبر Supabase Edge Function فقط؛ يبقى Gemini API key سراً خادمياً ولا يُقرأ أو يُطبع ملف `.env` المحلي.
+- السمات ثلاثية الأبعاد تستخدم Three.js، وتحترم إعداد تقليل الحركة، وتُحفظ خياراتها عبر مخزن الإعدادات الحالي.
+- وضع التركيز المفرد يعرض القسم النشط وحده مع أداة تنقل واضحة بين الأقسام.
+
 ## حالة ميزة مساعد الدراسة
 - ملاحظات كل فرع تُحفظ محلياً في IndexedDB بمفتاح معرّف العقدة.
 - مساعد الدراسة يستدعي Supabase Edge Function، ولا يرسل مفتاح Gemini إلى المتصفح.

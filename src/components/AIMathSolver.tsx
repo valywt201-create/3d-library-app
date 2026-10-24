@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { compile, derivative, evaluate, format, parse, simplify } from 'mathjs'
-import { ACCENT, askAI, btn, field, hasAI, panel } from './toolkit'
+import { ACCENT, btn, field, hasAI, panel } from './toolkit'
+import { requestStudyAI } from '../lib/studyAssistant'
 
 interface Step { t: string; mono?: boolean }
 const fm = (x: number) => String(+x.toFixed(6))
@@ -69,10 +70,12 @@ function solveLogic(s: string): Step[] {
 /* ============ المعادلات والمشتقات والتعابير ============ */
 function freeVars(expr: string): string[] {
   const names = new Set<string>()
-  parse(expr).traverse((n: any, path: string, parent: any) => {
-    if (n.type === 'SymbolNode' && !(parent?.type === 'FunctionNode' && path === 'fn')) names.add(n.name)
+  parse(expr).traverse((node, path, parent) => {
+    if (node.type === 'SymbolNode' && !(parent?.type === 'FunctionNode' && path === 'fn') && 'name' in node && typeof node.name === 'string') {
+      names.add(node.name)
+    }
   })
-  ;['pi', 'e', 'i', 'Infinity', 'NaN', 'true', 'false'].forEach(k => names.delete(k))
+  for (const constant of ['pi', 'e', 'i', 'Infinity', 'NaN', 'true', 'false']) names.delete(constant)
   return [...names]
 }
 
@@ -118,7 +121,11 @@ function solveEquation(eq: string): Step[] {
     const y0 = f(x), y1 = f(x + 0.05)
     if (isFinite(y0) && isFinite(y1) && y0 * y1 <= 0 && y0 !== y1) {
       let lo = x, hi = x + 0.05
-      for (let k = 0; k < 60; k++) { const mid = (lo + hi) / 2; f(lo) * f(mid) <= 0 ? (hi = mid) : (lo = mid) }
+      for (let k = 0; k < 60; k++) {
+        const mid = (lo + hi) / 2
+        if (f(lo) * f(mid) <= 0) hi = mid
+        else lo = mid
+      }
       const rt = (lo + hi) / 2
       if (!roots.some(q => Math.abs(q - rt) < 1e-4)) roots.push(rt)
     }
@@ -163,8 +170,14 @@ export default function AIMathSolver() {
   const explain = async () => {
     setBusy(true)
     try {
-      setAi(await askAI('math', `حلّ المسألة التالية بالتفصيل خطوة بخطوة مع شرح كل خطوة باللغة العربية، ثم اذكر الجواب النهائي بوضوح:\n${input}`))
-    } catch (e) { setAi((e as Error).message) } finally { setBusy(false) }
+      setAi(await requestStudyAI({
+        action: 'answer',
+        nodeTitle: 'مسألة رياضية',
+        notes: '',
+        question: `حلّ المسألة التالية بالتفصيل خطوة بخطوة مع شرح كل خطوة باللغة العربية، ثم اذكر الجواب النهائي بوضوح:\n${input}`,
+        language: 'ar',
+      }))
+    } catch { setAi('تعذّر الاتصال بمساعد الرياضيات. تحقّق من إعداد Supabase ونشر وظيفة notes-ai ثم أعد المحاولة.') } finally { setBusy(false) }
   }
 
   return (
@@ -179,11 +192,11 @@ export default function AIMathSolver() {
       </div>
       <div className="flex gap-2">
         <button className={btn} style={{ background: ACCENT, color: '#111' }} onClick={solve}>حل خطوة بخطوة</button>
-        <button className={btn} disabled={busy || !input.trim()} onClick={explain} title={hasAI() ? '' : 'يحتاج AI_ENDPOINT'}>
+        <button className={btn} disabled={busy || !input.trim()} onClick={explain} title={hasAI() ? '' : 'يتطلب إعداد Supabase وتسجيل الدخول'}>
           {busy ? 'جارٍ الشرح…' : 'شرح بالذكاء الاصطناعي'}
         </button>
       </div>
-      {!hasAI() && <p className="text-xs opacity-60">زر الذكاء الاصطناعي يحتاج رابط خادم في AI_ENDPOINT (ملف toolkit.ts). الحل المحلي يعمل بدونه.</p>}
+      {!hasAI() && <p className="text-xs opacity-60">يتطلب الشرح الذكي إعداد اتصال Supabase ونشر وظيفة notes-ai. يُحفظ مفتاح Gemini على الخادم فقط؛ ويظل الحل المحلي متاحاً بدونه.</p>}
       <div className="space-y-2">
         {steps.map((s, i) => (
           <motion.div key={i} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }} className={`${panel} p-3 text-sm`}>

@@ -1,14 +1,16 @@
 import { useSyncExternalStore } from 'react'
 
-export type ThemeId = 'space-live' | 'space-static' | 'solid' | 'cats' | 'floral' | 'butterflies' | 'dark-vintage' | 'pastel-ai'
+export type ThemeId = 'space-live' | 'wave-field' | 'orbit-drift' | 'liquid-velvet' | 'pastel-waves' | 'botanical-flow' | 'rose-nebula' | 'moonlit-bloom' | 'cyber-grid' | 'geometric-matrix' | 'tech-pulse' | 'nova-drive' | 'star-forge' | 'space-static' | 'solid' | 'cats' | 'floral' | 'butterflies' | 'dark-vintage' | 'pastel-ai'
 export type WindowStyle = 'glass' | 'solid'
-export type ViewMode = 'focus' | 'compact'
+export type ViewMode = 'focus' | 'compact' | 'single-section'
+export type AnimationMode = 'mouse' | 'auto'
 export type AccentMode = 'auto' | 'custom'
 export type AiPersonality = 'short' | 'educational' | 'detailed' | 'creative'
 export type ThemePalette = [string, string, string, string, string]
 
 export interface Settings {
   theme: ThemeId
+  animationMode: AnimationMode
   windowStyle: WindowStyle
   viewMode: ViewMode
   glassOpacity: number
@@ -23,11 +25,16 @@ export const SETTINGS_KEY = 'atelier-settings-v1'
 const LEGACY_APPEARANCE_KEY = 'atelier-appearance-v1'
 export const TRASH_RETENTION_DAYS = 60
 
-const THEME_IDS: readonly ThemeId[] = ['space-live', 'space-static', 'solid', 'cats', 'floral', 'butterflies', 'dark-vintage', 'pastel-ai']
+const THEME_IDS: readonly ThemeId[] = ['space-live', 'wave-field', 'orbit-drift', 'liquid-velvet', 'pastel-waves', 'botanical-flow', 'rose-nebula', 'moonlit-bloom', 'cyber-grid', 'geometric-matrix', 'tech-pulse', 'nova-drive', 'star-forge', 'space-static', 'solid', 'cats', 'floral', 'butterflies', 'dark-vintage', 'pastel-ai']
 const WINDOW_STYLES: readonly WindowStyle[] = ['glass', 'solid']
-const VIEW_MODES: readonly ViewMode[] = ['focus', 'compact']
+const VIEW_MODES: readonly ViewMode[] = ['focus', 'compact', 'single-section']
+const ANIMATION_MODES: readonly AnimationMode[] = ['mouse', 'auto']
 const ACCENT_MODES: readonly AccentMode[] = ['auto', 'custom']
 const AI_IDS: readonly AiPersonality[] = ['short', 'educational', 'detailed', 'creative']
+export const ANIMATED_THEME_IDS = ['space-live', 'wave-field', 'orbit-drift', 'liquid-velvet', 'pastel-waves', 'botanical-flow', 'rose-nebula', 'moonlit-bloom', 'cyber-grid', 'geometric-matrix', 'tech-pulse', 'nova-drive', 'star-forge'] as const
+export type AnimatedThemeId = typeof ANIMATED_THEME_IDS[number]
+export const RANDOMIZABLE_THEMES: readonly ThemeId[] = ANIMATED_THEME_IDS
+export const isAnimatedTheme = (theme: ThemeId): theme is AnimatedThemeId => (ANIMATED_THEME_IDS as readonly ThemeId[]).includes(theme)
 export const DEFAULT_PASTEL_PALETTE: ThemePalette = ['#17152a', '#28213b', '#d9b8ff', '#ffd7e8', '#fff7fc']
 
 export const TOOL_CATALOG: readonly { id: string; label: string }[] = [
@@ -64,6 +71,7 @@ function defaults(): Settings {
   const calm = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   return {
     theme: calm ? 'space-static' : 'space-live',
+    animationMode: 'mouse',
     windowStyle: 'glass',
     viewMode: 'focus',
     glassOpacity: 0.82,
@@ -96,6 +104,7 @@ function sanitize(raw: unknown, base: Settings): Settings {
 
   return {
     theme: pick(record.theme, THEME_IDS, base.theme),
+    animationMode: pick(record.animationMode, ANIMATION_MODES, base.animationMode),
     windowStyle: pick(record.windowStyle, WINDOW_STYLES, base.windowStyle),
     viewMode: pick(record.viewMode, VIEW_MODES, base.viewMode),
     glassOpacity,
@@ -200,6 +209,18 @@ export function toggleToolVisibility(id: string): void {
 }
 
 const THEME_ACCENTS: Partial<Record<ThemeId, string>> = {
+  'wave-field': '#67e8f9',
+  'orbit-drift': '#c4b5fd',
+  'liquid-velvet': '#e9a8cf',
+  'pastel-waves': '#b7b5ff',
+  'botanical-flow': '#9ed9b2',
+  'rose-nebula': '#f3a0cb',
+  'moonlit-bloom': '#c5c4ff',
+  'cyber-grid': '#4deeea',
+  'geometric-matrix': '#67e8a5',
+  'tech-pulse': '#f2aa47',
+  'nova-drive': '#ff835e',
+  'star-forge': '#9ec9ff',
   cats: '#f8a978',
   floral: '#f0a7c6',
   butterflies: '#a9b6ff',

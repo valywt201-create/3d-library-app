@@ -7,7 +7,7 @@ const STORAGE_KEY = 'atelier-shared-workspace-v1'
 const listeners = new Set<() => void>()
 const noteListeners = new Set<(note: SharedNote) => void>()
 
-export interface SharedWorkspace extends SharedWorkspaceCredentials {}
+export type SharedWorkspace = SharedWorkspaceCredentials
 
 function isWorkspace(value: unknown): value is SharedWorkspace {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false

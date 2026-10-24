@@ -7,7 +7,7 @@ import SettingsModal from './components/SettingsModal'
 import AuthModal from './components/AuthModal'
 import OnboardingTour from './components/OnboardingTour'
 import { LibraryProvider, TreeProvider, useTree } from './shared'
-import { resolveAccent, updateSettings, useSettings } from './lib/settings'
+import { isAnimatedTheme, resolveAccent, updateSettings, useSettings } from './lib/settings'
 import { activateWorkspaceFromInvite } from './lib/sharedWorkspace'
 import { directionOf, useLocale } from './lib/i18n'
 
@@ -32,12 +32,14 @@ function Layout() {
 
   return (
     <div lang={locale} dir={directionOf(locale)} data-view-mode={settings.viewMode} className="min-h-screen" style={{ '--accent': accent } as CSSProperties}>
-      {settings.theme === 'space-live' && (
-        <Suspense fallback={null}><SpaceBackground color={accent} /></Suspense>
+      {isAnimatedTheme(settings.theme) && (
+        <Suspense fallback={null}><SpaceBackground color={accent} theme={settings.theme} animationMode={settings.animationMode} /></Suspense>
       )}
       {settings.theme === 'space-static' && <div className="space-static" aria-hidden="true" />}
 
-      <AppHeader accent={accent} viewMode={settings.viewMode} onToggleViewMode={() => updateSettings({ viewMode: settings.viewMode === 'focus' ? 'compact' : 'focus' })} onOpenSettings={openSettings} onOpenAuth={openAuth} />
+      <AppHeader accent={accent} viewMode={settings.viewMode} onToggleViewMode={() => updateSettings({
+        viewMode: settings.viewMode === 'focus' ? 'compact' : settings.viewMode === 'compact' ? 'single-section' : 'focus',
+      })} onOpenSettings={openSettings} onOpenAuth={openAuth} />
       <TreeSidebar />
       <AIAssistant />
 

@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Copy, Download, FileUp, Save } from 'lucide-react'
 import { useLibrary, useTree } from '../shared'
-import { ACCENT, askAI, btn, copy, download, field, flattenTree, hasAI, panel } from './toolkit'
+import { ACCENT, btn, copy, download, field, flattenTree, hasAI, panel } from './toolkit'
+import { requestStudyAI } from '../lib/studyAssistant'
 
 const STOP = new Set('the and for that with this from have are was were not but you your من في على إلى عن أن هذا هذه التي الذي ذلك كان أو ثم قد لم لا ما هو هي كما أي بعد قبل عند حتى'.split(' '))
 
@@ -21,6 +22,7 @@ export default function DocumentTools() {
   const { tree, path } = useTree()
   const [file, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState('')
+  const previewUrl = useRef<string | null>(null)
   const [lang, setLang] = useState('ara+eng')
   const [text, setText] = useState('')
   const [prog, setProg] = useState(0)
@@ -30,12 +32,17 @@ export default function DocumentTools() {
   const [n, setN] = useState(5)
   const [target, setTarget] = useState(path[path.length - 1] ?? '')
 
-  useEffect(() => {
-    if (!file) return setPreview('')
-    const u = URL.createObjectURL(file)
-    setPreview(u)
-    return () => URL.revokeObjectURL(u)
-  }, [file])
+  useEffect(() => () => {
+    if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
+  }, [])
+
+  const chooseFile = (nextFile: File | null): void => {
+    if (previewUrl.current) URL.revokeObjectURL(previewUrl.current)
+    const nextUrl = nextFile ? URL.createObjectURL(nextFile) : ''
+    previewUrl.current = nextUrl || null
+    setPreview(nextUrl)
+    setFile(nextFile)
+  }
 
   const ocr = async () => {
     if (!file) return
@@ -55,9 +62,9 @@ export default function DocumentTools() {
     if (!ai) return setBullets(summarize(text, n))
     setBusy(true)
     try {
-      const r = await askAI('summary', `لخّص النص التالي في نقاط موجزة باللغة العربية، كل نقطة في سطر يبدأ بـ "- ":\n${text.slice(0, 12000)}`)
+      const r = await requestStudyAI({ action: 'summarize', nodeTitle: 'مستند مرفوع', notes: text.slice(0, 12_000), language: 'ar' })
       setBullets(r.split('\n').map(l => l.replace(/^[-•*\s]+/, '').trim()).filter(Boolean))
-    } catch (e) { setMsg((e as Error).message) } finally { setBusy(false) }
+    } catch { setMsg('تعذّر تلخيص المستند بالذكاء الاصطناعي. تحقّق من إعداد Supabase ونشر وظيفة notes-ai ثم أعد المحاولة.') } finally { setBusy(false) }
   }
 
   const saveTxt = () => {
@@ -71,8 +78,8 @@ export default function DocumentTools() {
   return (
     <div className="mx-auto max-w-2xl space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <label className={`${btn} cursor-pointer`}><FileUp size={14} className="ml-1 inline" />رفع صورة<input type="file" accept="image/*" hidden onChange={e => { setFile(e.target.files?.[0] ?? null); e.target.value = '' }} /></label>
-        <select className={field} style={{ colorScheme: 'dark' }} defaultValue="" onChange={e => setFile(items.find(i => i.id === e.target.value)?.file ?? null)}>
+        <label className={`${btn} cursor-pointer`}><FileUp size={14} className="ml-1 inline" />رفع صورة<input type="file" accept="image/*" hidden onChange={e => { chooseFile(e.target.files?.[0] ?? null); e.target.value = '' }} /></label>
+        <select className={field} style={{ colorScheme: 'dark' }} defaultValue="" onChange={e => chooseFile(items.find(i => i.id === e.target.value)?.file ?? null)}>
           <option value="">من صور المكتبة…</option>
           {items.filter(i => i.file && (i.kind === 'image' || i.kind === 'drawing')).map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
         </select>

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Columns3, Expand, Languages, Settings, UserRound } from 'lucide-react'
+import { Columns3, Expand, Focus, Languages, Settings, UserRound } from 'lucide-react'
 import { useGoogleAuth } from '../lib/googleAuth'
 import { setLocale, tr, useLocale } from '../lib/i18n'
 import type { ViewMode } from '../lib/settings'
@@ -38,10 +38,17 @@ interface Props {
 export default function AppHeader({ accent, viewMode, onToggleViewMode, onOpenSettings, onOpenAuth }: Props) {
   const locale = useLocale()
   const languageLabel = locale === 'en' ? 'العربية' : 'English'
-  const focusMode = viewMode === 'focus'
-  const viewLabel = focusMode
+  const modeLabel = viewMode === 'focus'
+    ? tr(locale, 'Full', 'كامل')
+    : viewMode === 'compact'
+      ? tr(locale, 'Compact', 'مضغوط')
+      : tr(locale, 'Single section', 'قسم واحد')
+  const viewLabel = viewMode === 'focus'
     ? tr(locale, 'Switch to compact view', 'التبديل إلى العرض المضغوط')
-    : tr(locale, 'Switch to focus view', 'التبديل إلى عرض التركيز')
+    : viewMode === 'compact'
+      ? tr(locale, 'Switch to single-section focus', 'التبديل إلى التركيز على قسم واحد')
+      : tr(locale, 'Switch to full view', 'التبديل إلى العرض الكامل')
+  const ViewIcon = viewMode === 'focus' ? Expand : viewMode === 'compact' ? Columns3 : Focus
 
   return (
     <header className="glass sticky top-0 z-20 rounded-none border-x-0 border-t-0">
@@ -55,9 +62,9 @@ export default function AppHeader({ accent, viewMode, onToggleViewMode, onOpenSe
           <button type="button" aria-label={tr(locale, 'Switch interface language', 'تبديل لغة الواجهة')} title={tr(locale, 'Switch language', 'تبديل اللغة')} onClick={() => { sfx.click(); setLocale(locale === 'en' ? 'ar' : 'en') }} className="flex h-9 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 text-xs transition hover:bg-white/10 active:scale-95 sm:px-3">
             <Languages size={15} /><span>{languageLabel}</span>
           </button>
-          <button type="button" aria-label={viewLabel} title={viewLabel} aria-pressed={focusMode} onClick={() => { sfx.click(); onToggleViewMode() }} className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 text-xs transition hover:bg-white/10 active:scale-95 sm:px-3">
-            {focusMode ? <Columns3 size={16} /> : <Expand size={16} />}
-            <span className="hidden md:inline">{focusMode ? tr(locale, 'Focus', 'تركيز') : tr(locale, 'Compact', 'مضغوط')}</span>
+          <button type="button" aria-label={viewLabel} title={viewLabel} aria-pressed={viewMode === 'single-section'} onClick={() => { sfx.click(); onToggleViewMode() }} className="flex h-9 items-center justify-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 text-xs transition hover:bg-white/10 active:scale-95 sm:px-3">
+            <ViewIcon size={16} />
+            <span className="hidden md:inline">{modeLabel}</span>
           </button>
           <button type="button" data-tour="settings" aria-label={tr(locale, 'Settings and support', 'الإعدادات والدعم')} aria-haspopup="dialog" title={tr(locale, 'Settings', 'الإعدادات')} onClick={() => { sfx.open(); onOpenSettings() }} className="group flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 transition hover:bg-white/10 active:scale-95">
             <Settings size={17} className="transition-transform duration-300 group-hover:rotate-90" />

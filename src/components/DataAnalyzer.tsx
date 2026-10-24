@@ -39,16 +39,19 @@ function Chart({ type, labels, series, xs }: { type: ChartType; labels: string[]
   if (type === 'pie') {
     const s = series[0]
     const total = s.vals.reduce((a, v) => a + Math.max(0, v), 0) || 1
-    let ang = -Math.PI / 2
     const cx = 160, cy = CH / 2, r = 120
+    const slices = s.vals.map((value, index) => {
+      const previous = s.vals.slice(0, index).reduce((sum, item) => sum + Math.max(0, item), 0)
+      const start = -Math.PI / 2 + (previous / total) * Math.PI * 2
+      const end = start + (Math.max(0, value) / total) * Math.PI * 2
+      return { value, index, start, end }
+    })
     return (
       <svg viewBox={`0 0 ${CW} ${CH}`} className="w-full">
-        {s.vals.map((v, i) => {
-          const a2 = ang + (Math.max(0, v) / total) * Math.PI * 2
-          const big = a2 - ang > Math.PI ? 1 : 0
-          const d = `M${cx} ${cy} L${cx + r * Math.cos(ang)} ${cy + r * Math.sin(ang)} A${r} ${r} 0 ${big} 1 ${cx + r * Math.cos(a2)} ${cy + r * Math.sin(a2)}Z`
-          ang = a2
-          return <motion.path key={i} d={d} fill={SERIES[i % SERIES.length]} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}><title>{`${labels[i]}: ${v} (${((Math.max(0, v) / total) * 100).toFixed(1)}%)`}</title></motion.path>
+        {slices.map(({ value, index, start, end }) => {
+          const big = end - start > Math.PI ? 1 : 0
+          const d = `M${cx} ${cy} L${cx + r * Math.cos(start)} ${cy + r * Math.sin(start)} A${r} ${r} 0 ${big} 1 ${cx + r * Math.cos(end)} ${cy + r * Math.sin(end)}Z`
+          return <motion.path key={index} d={d} fill={SERIES[index % SERIES.length]} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.05 }}><title>{`${labels[index]}: ${value} (${((Math.max(0, value) / total) * 100).toFixed(1)}%)`}</title></motion.path>
         })}
         {labels.slice(0, 12).map((l, i) => (
           <g key={i} transform={`translate(330 ${24 + i * 22})`}>

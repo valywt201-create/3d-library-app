@@ -1,9 +1,16 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { askAI, ACCENT, btn, field, hasAI, flattenTree, panel, subtreeIds } from './toolkit'
+import { ACCENT, btn, field, hasAI, flattenTree, panel, subtreeIds } from './toolkit'
 import { useLibrary, useTree } from '../shared'
+import { requestStudyAI } from '../lib/studyAssistant'
 
 interface Card { q: string; a: string; options?: string[] }
+function isCard(value: unknown): value is Card {
+  if (typeof value !== 'object' || value === null) return false
+  const card = value as Record<string, unknown>
+  return typeof card.q === 'string' && typeof card.a === 'string' && Array.isArray(card.options) && card.options.length === 4 && card.options.every(option => typeof option === 'string')
+}
+
 const STOP = new Set('this that with from have which their there where these those about would could should because between through after before other into than then them they were what when will your also been being more most some such only over very'.split(' '))
 const shuffle = <T,>(a: T[]) => [...a].sort(() => Math.random() - 0.5)
 
@@ -50,8 +57,13 @@ export default function QuizGenerator() {
     try {
       let out: Card[] = []
       if (useAi && hasAI()) {
-        const r = await askAI('quiz', `أنشئ ${count} أسئلة دراسية من النص التالي. أعد JSON فقط بالشكل [{"q":"السؤال","a":"الإجابة","options":["4 خيارات تتضمن الإجابة"]}] دون أي نص إضافي:\n${text.slice(0, 12000)}`)
-        out = JSON.parse(r.slice(r.indexOf('['), r.lastIndexOf(']') + 1))
+        const response = await requestStudyAI({ action: 'quiz', nodeTitle: 'اختبار مراجعة', notes: text.slice(0, 12_000), language: 'ar', questionCount: count })
+        const start = response.indexOf('[')
+        const end = response.lastIndexOf(']')
+        if (start < 0 || end < start) throw new Error('لم تُرجع الخدمة مصفوفة أسئلة صالحة. حاول مرة أخرى.')
+        const parsed: unknown = JSON.parse(response.slice(start, end + 1))
+        if (!Array.isArray(parsed) || parsed.length < count || !parsed.every(isCard)) throw new Error('صيغة الأسئلة غير مكتملة. حاول مرة أخرى.')
+        out = parsed.slice(0, count)
       } else out = makeCards(text, count)
       if (!out.length) setMsg('لم أتمكن من توليد أسئلة. تأكد أن النص يحتوي جملاً كاملة (6 كلمات فأكثر).')
       setCards(out); setIdx(0); setFlip(false); setPick(null); setScore(0)

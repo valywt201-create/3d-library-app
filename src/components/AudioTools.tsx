@@ -78,10 +78,22 @@ export default function AudioTools() {
   const total = mins[mode] * 60
 
   const switchMode = (m: ModeId) => { setMode(m); setLeft(mins[m] * 60); setRun(false) }
-  finishRef.current = () => {
-    setRun(false); chime()
-    if (mode === 'focus') { const n = done + 1; setDone(n); switchMode(n % 4 === 0 ? 'long' : 'short') } else switchMode('focus')
-  }
+  useEffect(() => {
+    finishRef.current = () => {
+      setRun(false)
+      chime()
+      if (mode === 'focus') {
+        const nextDone = done + 1
+        const nextMode: ModeId = nextDone % 4 === 0 ? 'long' : 'short'
+        setDone(nextDone)
+        setMode(nextMode)
+        setLeft(mins[nextMode] * 60)
+      } else {
+        setMode('focus')
+        setLeft(mins.focus * 60)
+      }
+    }
+  }, [done, mins, mode])
   useEffect(() => {
     if (!run) return
     const id = setInterval(() => { const l = Math.max(0, Math.round((end.current - Date.now()) / 1000)); setLeft(l); if (l === 0) finishRef.current() }, 250)

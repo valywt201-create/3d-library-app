@@ -12,6 +12,32 @@ import Library from './Library'
 import ToolsPanel from './ToolsPanel'
 import NotesEditor from './NotesEditor'
 
+interface SectionOption {
+  id: string
+  path: string[]
+  label: string
+}
+
+function sectionOptions(nodes: TNode[], parentPath: string[] = [], parentTitles: string[] = []): SectionOption[] {
+  return nodes.flatMap(node => {
+    const path = [...parentPath, node.id]
+    const titles = [...parentTitles, node.title]
+    return [{ id: node.id, path, label: titles.join(' / ') }, ...sectionOptions(node.children, path, titles)]
+  })
+}
+
+function resolveSection(tree: TNode[], path: string[]): { node: TNode; parentPath: string[]; depth: number } | null {
+  if (!path.length) return null
+  let level = tree
+  let node: TNode | undefined
+  for (const id of path) {
+    node = level.find(item => item.id === id)
+    if (!node) return null
+    level = node.children
+  }
+  return node ? { node, parentPath: path.slice(0, -1), depth: path.length - 1 } : null
+}
+
 interface AddFormProps {
   placeholder: string
   color: string
@@ -56,9 +82,10 @@ interface TreeNodeItemProps {
   parentPath: string[]
   depth: number
   onNotice: (message: string) => void
+  singleSectionFocus?: boolean
 }
 
-function TreeNodeItem({ node, parentPath, depth, onNotice }: TreeNodeItemProps) {
+function TreeNodeItem({ node, parentPath, depth, onNotice, singleSectionFocus = false }: TreeNodeItemProps) {
   const locale = useLocale()
   const { viewMode } = useSettings()
   const { items } = useLibrary()
@@ -186,7 +213,7 @@ function TreeNodeItem({ node, parentPath, depth, onNotice }: TreeNodeItemProps) 
                 </button>
               </div>
 
-              {node.children.length > 0 && (
+              {node.children.length > 0 && !singleSectionFocus && (
                 <motion.div
                   initial={{ opacity: 0, paddingInlineStart: 0 }}
                   animate={{ opacity: 1, paddingInlineStart: 24 }}
@@ -215,9 +242,12 @@ export default function TreeSidebar() {
   const locale = useLocale()
   const { viewMode } = useSettings()
   const compactMode = viewMode === 'compact'
-  const { tree, setPath, addNode } = useTree()
+  const singleSectionMode = viewMode === 'single-section'
+  const { tree, path, setPath, addNode } = useTree()
   const [notice, setNotice] = useState('')
   const text = (english: string, arabic: string): string => tr(locale, english, arabic)
+  const options = sectionOptions(tree)
+  const selected = resolveSection(tree, path)
 
   useEffect(() => {
     if (!notice) return undefined
@@ -230,36 +260,84 @@ export default function TreeSidebar() {
       data-tour="tree-categories"
       data-view-mode={viewMode}
       data-panel-side={locale === 'ar' ? 'right' : 'left'}
-      className={compactMode
-        ? `fixed bottom-0 top-14 z-10 w-full max-w-[31rem] overflow-y-auto overscroll-contain border-white/10 bg-slate-950/90 px-3 py-4 shadow-2xl shadow-black/40 backdrop-blur-2xl transition-[width,transform] duration-300 ease-out sm:px-4 sm:py-5 ${locale === 'ar' ? 'right-0 border-l' : 'left-0 border-r'}`
-        : 'relative mx-auto w-full max-w-none space-y-3 px-3 py-5 transition-[max-width,padding] duration-300 ease-out sm:px-5 sm:py-6'}
+      className={singleSectionMode
+        ? 'fixed inset-x-0 bottom-0 top-14 z-10 overflow-y-auto overscroll-contain bg-slate-950/95 px-3 py-3 shadow-2xl shadow-black/40 backdrop-blur-xl transition-all duration-300 sm:px-6 sm:py-5'
+        : compactMode
+          ? `fixed bottom-0 top-14 z-10 w-full max-w-[31rem] overflow-y-auto overscroll-contain border-white/10 bg-slate-950/90 px-3 py-4 shadow-2xl shadow-black/40 backdrop-blur-2xl transition-[width,transform] duration-300 ease-out sm:px-4 sm:py-5 ${locale === 'ar' ? 'right-0 border-l' : 'left-0 border-r'}`
+          : 'relative mx-auto w-full max-w-none space-y-3 px-3 py-5 transition-[max-width,padding] duration-300 ease-out sm:px-5 sm:py-6'}
     >
-      <section className={`glass rounded-2xl border border-white/[0.06] ${compactMode ? 'p-3 sm:p-4' : 'p-3.5 sm:p-4'}`}>
-        <div className="mb-2.5 flex items-center gap-2 text-sm font-medium text-white/80">
-          <FolderPlus size={16} style={{ color: 'var(--accent)' }} />{text('Create a top-level category', 'إنشاء قسم رئيسي')}
+      {singleSectionMode ? (
+        <div className="mx-auto max-w-4xl space-y-3">
+          <div className="glass sticky top-0 z-10 grid gap-2 rounded-2xl border border-white/10 p-3 shadow-lg shadow-black/20 sm:grid-cols-[minmax(10rem,0.7fr)_minmax(14rem,1.3fr)] sm:items-center sm:p-4">
+            <label htmlFor="single-section-picker" className="text-sm font-semibold">{text('Single-section focus', 'التركيز على قسم واحد')}</label>
+            <select
+              id="single-section-picker"
+              aria-label={text('Choose a section to focus on', 'اختر القسم الذي تريد التركيز عليه')}
+              value={path[path.length - 1] ?? ''}
+              onChange={event => {
+                const option = options.find(item => item.id === event.target.value)
+                sfx.open()
+                setPath(option?.path ?? [])
+              }}
+              className="min-w-0 rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:ring-2"
+              style={{ ['--tw-ring-color' as string]: 'var(--accent)' }}
+            >
+              <option value="">{text('Choose a section…', 'اختر قسماً…')}</option>
+              {options.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+            </select>
+          </div>
+
+          {notice && <p role="status" className="glass rounded-xl border border-white/10 px-3 py-2 text-sm">{notice}</p>}
+          <AnimatePresence mode="wait" initial={false}>
+            {selected ? (
+              <motion.div key={selected.node.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
+                <TreeNodeItem
+                  node={selected.node}
+                  parentPath={selected.parentPath}
+                  depth={selected.depth}
+                  onNotice={setNotice}
+                  singleSectionFocus
+                />
+              </motion.div>
+            ) : (
+              <motion.p key="no-selected-section" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="glass rounded-2xl px-4 py-10 text-center text-sm opacity-70">
+                {tree.length
+                  ? text('Choose a section from the selector above to focus on it.', 'اختر قسماً من القائمة أعلاه لعرضه وحده.')
+                  : text('There are no sections yet. Switch to full view to create one.', 'لا توجد أقسام بعد. انتقل إلى العرض الكامل لإنشاء قسم.')}
+              </motion.p>
+            )}
+          </AnimatePresence>
         </div>
-        <AddForm
-          placeholder={text('Trading, Welding, Quran, Art, Learning…', 'التداول، اللحام، القرآن، الفن، التعلم…')}
-          color="var(--accent)"
-          addLabel={text('Add category', 'إضافة قسم')}
-          onSubmit={title => {
-            const id = addNode(null, title)
-            sfx.success()
-            setPath([id])
-          }}
-        />
-      </section>
+      ) : (
+        <>
+          <section className={`glass rounded-2xl border border-white/[0.06] ${compactMode ? 'p-3 sm:p-4' : 'p-3.5 sm:p-4'}`}>
+            <div className="mb-2.5 flex items-center gap-2 text-sm font-medium text-white/80">
+              <FolderPlus size={16} style={{ color: 'var(--accent)' }} />{text('Create a top-level category', 'إنشاء قسم رئيسي')}
+            </div>
+            <AddForm
+              placeholder={text('Trading, Welding, Quran, Art, Learning…', 'التداول، اللحام، القرآن، الفن، التعلم…')}
+              color="var(--accent)"
+              addLabel={text('Add category', 'إضافة قسم')}
+              onSubmit={title => {
+                const id = addNode(null, title)
+                sfx.success()
+                setPath([id])
+              }}
+            />
+          </section>
 
-      {notice && <p role="status" className="glass rounded-xl border border-white/10 px-3 py-2 text-sm">{notice}</p>}
+          {notice && <p role="status" className="glass rounded-xl border border-white/10 px-3 py-2 text-sm">{notice}</p>}
 
-      <section aria-label={text('Library tools', 'أدوات المكتبة')}>
-        <ToolsPanel />
-      </section>
+          <section aria-label={text('Library tools', 'أدوات المكتبة')}>
+            <ToolsPanel />
+          </section>
 
-      {tree.length === 0 && <p className="py-6 text-center text-sm opacity-60">{text('No categories yet. Create your first one above.', 'لا توجد أقسام بعد. أنشئ أول قسم من الأعلى.')}</p>}
-      <div className={compactMode ? 'space-y-2' : 'space-y-2.5'}>
-        {tree.map(node => <TreeNodeItem key={node.id} node={node} parentPath={[]} depth={0} onNotice={setNotice} />)}
-      </div>
+          {tree.length === 0 && <p className="py-6 text-center text-sm opacity-60">{text('No categories yet. Create your first one above.', 'لا توجد أقسام بعد. أنشئ أول قسم من الأعلى.')}</p>}
+          <div className={compactMode ? 'space-y-2' : 'space-y-2.5'}>
+            {tree.map(node => <TreeNodeItem key={node.id} node={node} parentPath={[]} depth={0} onNotice={setNotice} />)}
+          </div>
+        </>
+      )}
     </main>
   )
 }
